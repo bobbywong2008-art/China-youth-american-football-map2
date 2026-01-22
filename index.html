@@ -2,170 +2,208 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
-<title>中国青少年美式足球装备球队地图（示意）</title>
+<title>中国青少年美式足球装备球队地图</title>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+html,body{
+  margin:0;
+  height:100%;
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei";
+}
+#map{height:100%}
+
+.title{
+  position:absolute;
+  top:16px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(255,255,255,.95);
+  padding:8px 20px;
+  font-size:15px;
+  font-weight:600;
+  border-radius:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.15);
+  z-index:999;
 }
 
-#map { height: 100%; }
-
-.title {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(255,255,255,0.95);
-  padding: 8px 18px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.15);
-  z-index: 999;
+#back{
+  position:absolute;
+  top:16px;
+  right:20px;
+  padding:6px 14px;
+  background:#0057B8;
+  color:#fff;
+  border:none;
+  border-radius:16px;
+  cursor:pointer;
+  display:none;
+  z-index:999;
 }
 
-.team-icon {
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+.team-icon{
+  background:#fff;
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
 }
 </style>
 </head>
 
 <body>
 
-<div class="title">中国青少年美式足球装备球队地图（示意）</div>
+<div class="title">中国青少年美式足球装备球队地图</div>
+<button id="back">全国</button>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-const map = L.map('map').setView([23.1, 113.3], 6);
+/* ================= 地图初始化 ================= */
+
+const map = L.map("map").setView([35.8,104.1],4);
 
 L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  { maxZoom: 18 }
+ "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+ {maxZoom:18}
 ).addTo(map);
 
-// ================= 数据区（以后你只改这里） =================
+/* ================= 全国省级数据 ================= */
 
-const cities = [
+const provinces = [
   {
-    city: "广州",
-    center: [23.1291, 113.2644],
-    teams: [
-      {
-        name: "广州骑士",
-        age: "U11 / U13",
-        logo: "logos/gz_knights.png"
-      },
-      {
-        name: "广州白鳍豚",
-        age: "U11 / U13",
-        logo: "logos/gz_dolphin.png"
-      },
-      {
-        name: "广州八爪鱼",
-        age: "U10",
-        logo: "logos/gz_octopus.png"
-      }
+    name:"广东",
+    center:[23.3,113.3],
+    teamCount:8
+  }
+];
+
+/* ================= 清空地图 ================= */
+
+function clearMap(){
+  map.eachLayer(l=>{
+    if(l instanceof L.Marker || l instanceof L.CircleMarker || l instanceof L.Polyline){
+      map.removeLayer(l);
+    }
+  });
+}
+
+/* ================= 绘制全国 ================= */
+
+function drawNational(){
+  clearMap();
+  document.getElementById("back").style.display="none";
+  map.setView([35.8,104.1],4);
+
+  provinces.forEach(p=>{
+    const m=L.circleMarker(p.center,{
+      radius:14,
+      color:"#0057B8",
+      fillColor:"#0057B8",
+      fillOpacity:.85
+    }).addTo(map);
+
+    m.bindTooltip(
+      `${p.name}（${p.teamCount}）`,
+      {permanent:true,direction:"top"}
+    );
+
+    m.on("click",()=>drawGuangdong());
+  });
+}
+
+/* ================= 广东省数据 ================= */
+
+const guangdong = [
+  {
+    city:"广州",
+    center:[23.1291,113.2644],
+    teams:[
+      {name:"广州骑士", age:"U11 / U13"},
+      {name:"广州白鳍豚", age:"U11 / U13"},
+      {name:"广州八爪鱼", age:"U10"}
     ]
   },
   {
-    city: "深圳",
-    center: [22.5431, 114.0579],
-    teams: [
-      {
-        name: "深圳鲲鹏",
-        age: "U13",
-        logo: "logos/sz_kunpeng.png"
-      },
-      {
-        name: "深圳热浪",
-        age: "U13",
-        logo: "logos/sz_heatwave.png"
-      },
-      {
-        name: "深圳火箭熊",
-        age: "U10",
-        logo: "logos/sz_rocketbear.png"
-      }
+    city:"深圳",
+    center:[22.5431,114.0579],
+    teams:[
+      {name:"深圳鲲鹏", age:"U13"},
+      {name:"深圳热浪", age:"U13"},
+      {name:"深圳火箭熊", age:"U10"}
     ]
   },
   {
-    city: "佛山",
-    center: [23.0215, 113.1214],
-    teams: [
-      {
-        name: "佛山小兕虎",
-        age: "U9 / U11 / U13 / U15",
-        logo: "logos/fsx.png"
-      }
+    city:"佛山",
+    center:[23.0215,113.1214],
+    teams:[
+      {name:"佛山小兕虎", age:"U9 / U11 / U13 / U15"}
     ]
   },
   {
-    city: "珠海",
-    center: [22.2707, 113.5767],
-    teams: [
-      {
-        name: "珠海海东青",
-        age: "待确认",
-        logo: "logos/zh_haidongqing.png"
-      }
+    city:"珠海",
+    center:[22.2707,113.5767],
+    teams:[
+      {name:"珠海海东青", age:"待确认"}
     ]
   }
 ];
 
-// ================= 地图绘制 =================
+/* ================= 绘制广东 ================= */
 
-cities.forEach(c => {
+function drawGuangdong(){
+  clearMap();
+  document.getElementById("back").style.display="block";
+  map.setView([23.3,113.3],7);
 
-  // 城市锚点
-  L.circleMarker(c.center,{
-    radius:4,
-    color:"#666",
-    fill:true,
-    fillOpacity:0.6
-  }).addTo(map);
-
-  const count = c.teams.length;
-  const angleStep = Math.PI * 2 / count;
-  const radius = 0.18;
-
-  c.teams.forEach((t, i) => {
-
-    const angle = i * angleStep;
-    const lat = c.center[0] + Math.sin(angle) * radius;
-    const lng = c.center[1] + Math.cos(angle) * radius;
-
-    // 连线
-    L.polyline([c.center, [lat, lng]], {
-      color:"#aaa",
-      weight:1,
-      opacity:0.6
+  guangdong.forEach(c=>{
+    // 城市锚点
+    L.circleMarker(c.center,{
+      radius:4,
+      color:"#666",
+      fill:true,
+      fillOpacity:.6
     }).addTo(map);
 
-    const icon = L.icon({
-      iconUrl: t.logo,
-      iconSize: [48, 48],
-      className: "team-icon"
-    });
+    const count=c.teams.length;
+    const step=Math.PI*2/count;
+    const r=0.18;
 
-    L.marker([lat, lng], {icon})
-      .addTo(map)
-      .bindPopup(`
-        <b>${t.name}</b><br>
-        城市：${c.city}<br>
-        梯队：${t.age}
-      `);
+    c.teams.forEach((t,i)=>{
+      const a=i*step;
+      const lat=c.center[0]+Math.sin(a)*r;
+      const lng=c.center[1]+Math.cos(a)*r;
+
+      L.polyline([c.center,[lat,lng]],{
+        color:"#aaa",
+        weight:1,
+        opacity:.6
+      }).addTo(map);
+
+      const icon=L.icon({
+        iconUrl:"logos/placeholder.png",
+        iconSize:[48,48],
+        className:"team-icon"
+      });
+
+      L.marker([lat,lng],{icon})
+        .addTo(map)
+        .bindPopup(`
+          <b>${t.name}</b><br>
+          城市：${c.city}<br>
+          梯队：${t.age}
+        `);
+    });
   });
-});
+}
+
+/* ================= 返回按钮 ================= */
+
+document.getElementById("back").onclick=drawNational;
+
+/* ================= 启动 ================= */
+
+drawNational();
 </script>
 
 </body>
