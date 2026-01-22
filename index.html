@@ -1,120 +1,59 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>中国青少年美式足球装备球队地图</title>
+<meta charset="utf-8" />
+<title>广东青少年美式足球球队分布图（Demo）</title>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
 <style>
-html,body{
-  margin:0;
-  height:100%;
-  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei";
-}
-#map{height:100%}
+  html,body,#map{
+    height:100%;
+    margin:0;
+    background:#f5f6f7;
+  }
 
-.title{
-  position:absolute;
-  top:16px;
-  left:50%;
-  transform:translateX(-50%);
-  background:rgba(255,255,255,.95);
-  padding:8px 20px;
-  font-size:15px;
-  font-weight:600;
-  border-radius:20px;
-  box-shadow:0 2px 10px rgba(0,0,0,.15);
-  z-index:999;
-}
-
-#back{
-  position:absolute;
-  top:16px;
-  right:20px;
-  padding:6px 14px;
-  background:#0057B8;
-  color:#fff;
-  border:none;
-  border-radius:16px;
-  cursor:pointer;
-  display:none;
-  z-index:999;
-}
-
-.team-icon{
-  background:#fff;
-  border-radius:10px;
-  box-shadow:0 2px 8px rgba(0,0,0,.3);
-}
+  .popup-card{
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue";
+  }
+  .popup-card h3{
+    margin:0 0 6px 0;
+    font-size:16px;
+  }
+  .popup-card p{
+    margin:0;
+    font-size:13px;
+    color:#555;
+  }
 </style>
 </head>
 
 <body>
-
-<div class="title">中国青少年美式足球装备球队地图</div>
-<button id="back">全国</button>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-/* ================= 地图初始化 ================= */
-
-const map = L.map("map").setView([35.8,104.1],4);
+// ========== 1. 地图 ==========
+const map = L.map('map',{zoomControl:true})
+  .setView([23.2,113.3],7);
 
 L.tileLayer(
- "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
- {maxZoom:18}
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {maxZoom:18}
 ).addTo(map);
 
-/* ================= 全国省级数据 ================= */
+// ========== 2. Logo 映射表 ==========
+const teamLogos = {
+  "广州骑士":"logos/guangzhou-knights.png",
+  "广州白鳍豚":"logos/guangzhou-dolphins.png",
+  "佛山小兕虎":"logos/foshan-xiaoxihu.png"
+};
 
-const provinces = [
-  {
-    name:"广东",
-    center:[23.3,113.3],
-    teamCount:8
-  }
-];
-
-/* ================= 清空地图 ================= */
-
-function clearMap(){
-  map.eachLayer(l=>{
-    if(l instanceof L.Marker || l instanceof L.CircleMarker || l instanceof L.Polyline){
-      map.removeLayer(l);
-    }
-  });
-}
-
-/* ================= 绘制全国 ================= */
-
-function drawNational(){
-  clearMap();
-  document.getElementById("back").style.display="none";
-  map.setView([35.8,104.1],4);
-
-  provinces.forEach(p=>{
-    const m=L.circleMarker(p.center,{
-      radius:14,
-      color:"#0057B8",
-      fillColor:"#0057B8",
-      fillOpacity:.85
-    }).addTo(map);
-
-    m.bindTooltip(
-      `${p.name}（${p.teamCount}）`,
-      {permanent:true,direction:"top"}
-    );
-
-    m.on("click",()=>drawGuangdong());
-  });
-}
-
-/* ================= 广东省数据 ================= */
-
-const guangdong = [
+// ========== 3. 广东球队数据 ==========
+const cities = [
   {
     city:"广州",
     center:[23.1291,113.2644],
@@ -149,62 +88,39 @@ const guangdong = [
   }
 ];
 
-/* ================= 绘制广东 ================= */
-
-function drawGuangdong(){
-  clearMap();
-  document.getElementById("back").style.display="block";
-  map.setView([23.3,113.3],7);
-
-  guangdong.forEach(c=>{
-    // 城市锚点
-    L.circleMarker(c.center,{
-      radius:4,
-      color:"#666",
-      fill:true,
-      fillOpacity:.6
-    }).addTo(map);
-
-    const count=c.teams.length;
-    const step=Math.PI*2/count;
-    const r=0.18;
-
-    c.teams.forEach((t,i)=>{
-      const a=i*step;
-      const lat=c.center[0]+Math.sin(a)*r;
-      const lng=c.center[1]+Math.cos(a)*r;
-
-      L.polyline([c.center,[lat,lng]],{
-        color:"#aaa",
-        weight:1,
-        opacity:.6
-      }).addTo(map);
-
-      const icon=L.icon({
-        iconUrl:"logos/placeholder.png",
-        iconSize:[48,48],
-        className:"team-icon"
-      });
-
-      L.marker([lat,lng],{icon})
-        .addTo(map)
-        .bindPopup(`
-          <b>${t.name}</b><br>
-          城市：${c.city}<br>
-          梯队：${t.age}
-        `);
-    });
-  });
+// ========== 4. 放射散开函数 ==========
+function spreadPoints(latlng,count,index){
+  if(count===1) return latlng;
+  const r = 0.05;
+  const angle = (index/count)*Math.PI*2;
+  return [
+    latlng[0] + r*Math.cos(angle),
+    latlng[1] + r*Math.sin(angle)
+  ];
 }
 
-/* ================= 返回按钮 ================= */
+// ========== 5. 渲染 ==========
+cities.forEach(city=>{
+  city.teams.forEach((team,i)=>{
+    const pos = spreadPoints(city.center,city.teams.length,i);
 
-document.getElementById("back").onclick=drawNational;
+    const icon = L.icon({
+      iconUrl: teamLogos[team.name] || "logos/placeholder.png",
+      iconSize:[48,48],
+      iconAnchor:[24,24]
+    });
 
-/* ================= 启动 ================= */
-
-drawNational();
+    L.marker(pos,{icon})
+      .addTo(map)
+      .bindPopup(`
+        <div class="popup-card">
+          <h3>${team.name}</h3>
+          <p>美式足球（装备）</p>
+          <p>梯队：${team.age}</p>
+        </div>
+      `);
+  });
+});
 </script>
-
 </body>
 </html>
