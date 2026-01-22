@@ -14,9 +14,7 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
-#map {
-  height: 100%;
-}
+#map { height: 100%; }
 
 .title {
   position: absolute;
@@ -34,17 +32,8 @@ html, body {
 
 .team-icon {
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.3);
-}
-
-.team-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: #222;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 </style>
 </head>
@@ -57,51 +46,83 @@ html, body {
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-const map = L.map('map').setView([23.2, 113.3], 6);
+const map = L.map('map').setView([23.1, 113.3], 6);
 
-// 高级浅色底图
 L.tileLayer(
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
   { maxZoom: 18 }
 ).addTo(map);
 
-// 广东球队数据（示意）
+// ================= 数据区（以后你只改这里） =================
+
 const cities = [
   {
     city: "广州",
     center: [23.1291, 113.2644],
     teams: [
-      "广州骑士 U11/U13",
-      "广州白鳍豚 U11/U13",
-      "广州八爪鱼 U10"
+      {
+        name: "广州骑士",
+        age: "U11 / U13",
+        logo: "logos/gz_knights.png"
+      },
+      {
+        name: "广州白鳍豚",
+        age: "U11 / U13",
+        logo: "logos/gz_dolphin.png"
+      },
+      {
+        name: "广州八爪鱼",
+        age: "U10",
+        logo: "logos/gz_octopus.png"
+      }
     ]
   },
   {
     city: "深圳",
     center: [22.5431, 114.0579],
     teams: [
-      "深圳鲲鹏 U13",
-      "深圳热浪 U13",
-      "深圳火箭熊 U10"
+      {
+        name: "深圳鲲鹏",
+        age: "U13",
+        logo: "logos/sz_kunpeng.png"
+      },
+      {
+        name: "深圳热浪",
+        age: "U13",
+        logo: "logos/sz_heatwave.png"
+      },
+      {
+        name: "深圳火箭熊",
+        age: "U10",
+        logo: "logos/sz_rocketbear.png"
+      }
     ]
   },
   {
     city: "佛山",
     center: [23.0215, 113.1214],
     teams: [
-      "佛山小兕虎 U9/U11/U13/U15"
+      {
+        name: "佛山小兕虎",
+        age: "U9 / U11 / U13 / U15",
+        logo: "logos/fs_xihu.png"
+      }
     ]
   },
   {
     city: "珠海",
     center: [22.2707, 113.5767],
     teams: [
-      "珠海海东青"
+      {
+        name: "珠海海东青",
+        age: "待确认",
+        logo: "logos/zh_haidongqing.png"
+      }
     ]
   }
 ];
 
-let teamMarkers = [];
+// ================= 地图绘制 =================
 
 cities.forEach(c => {
 
@@ -110,56 +131,41 @@ cities.forEach(c => {
     radius:4,
     color:"#666",
     fill:true,
-    fillOpacity:0.7
+    fillOpacity:0.6
   }).addTo(map);
 
   const count = c.teams.length;
   const angleStep = Math.PI * 2 / count;
-  const radius = 0.15;
+  const radius = 0.18;
 
-  c.teams.forEach((name, i) => {
+  c.teams.forEach((t, i) => {
+
     const angle = i * angleStep;
     const lat = c.center[0] + Math.sin(angle) * radius;
     const lng = c.center[1] + Math.cos(angle) * radius;
 
-    // 连接线
+    // 连线
     L.polyline([c.center, [lat, lng]], {
       color:"#aaa",
       weight:1,
-      opacity:0.7
+      opacity:0.6
     }).addTo(map);
 
     const icon = L.icon({
-      iconUrl: "https://upload.wikimedia.org/wikipedia/commons/6/6e/American_football_icon.svg",
+      iconUrl: t.logo,
       iconSize: [48, 48],
       className: "team-icon"
     });
 
-    const marker = L.marker([lat, lng], {icon}).addTo(map);
-
-    marker.bindTooltip(
-      `${c.city} · ${name}`,
-      {permanent:true, direction:"top", offset:[0,-30], className:"team-label"}
-    );
-
-    teamMarkers.push(marker);
+    L.marker([lat, lng], {icon})
+      .addTo(map)
+      .bindPopup(`
+        <b>${t.name}</b><br>
+        城市：${c.city}<br>
+        梯队：${t.age}
+      `);
   });
 });
-
-// 缩放控制文字显隐
-function updateLabels(){
-  const z = map.getZoom();
-  teamMarkers.forEach(m=>{
-    if(z < 6){
-      m.closeTooltip();
-    }else{
-      m.openTooltip();
-    }
-  });
-}
-
-map.on('zoomend', updateLabels);
-updateLabels();
 </script>
 
 </body>
