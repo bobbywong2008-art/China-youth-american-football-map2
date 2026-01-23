@@ -368,51 +368,61 @@
             subdomains: 'abcd'
         }).addTo(map);
 
-        // ================= 球队 Logo 映射 =================
+        // ================= 球队 Logo 映射 - 全部更新为真实链接 =================
         const teamLogos = {
-            // 广东球队
+            // 广东球队 - 已有真实Logo
             "广州骑士": "logos/guangzhou-knights.png",
             "广州白鳍豚": "logos/guangzhou-dolphins.png",
             "佛山小兕虎": "logos/foshan-xiaoxihu.png",
             "珠海海东青": "logos/zhuhai-gyrfalcon.png",
             "深圳鲲鹏": "logos/shenzhen-kunpeng.png",
-            "广州八爪鱼": "logos/placeholder.png",
-            "深圳热浪": "logos/placeholder.png",
-            "深圳火箭熊": "logos/placeholder.png",
+            "广州八爪鱼": "logos/guangzhou-octopus.png",
+            "深圳热浪": "logos/shenzhen-heatwave.png",
+            "深圳火箭熊": "logos/shenzhen-rocketbear.png",
             
-            // 上海球队
-            "上海烽火狼": "logos/placeholder.png",
-            "上海鹰": "logos/placeholder.png",
-            "上海蓝魔": "logos/placeholder.png",
-            "上海Chang飓风": "logos/placeholder.png",
-            "上海鳄鱼": "logos/placeholder.png",
-            "上海银河": "logos/placeholder.png",
-            "上海坚毅坦克": "logos/placeholder.png",
-            "上海AFA鲨鱼": "logos/placeholder.png",
-            "上海飓风角斗士": "logos/placeholder.png",
-            "上海幽灵虎": "logos/placeholder.png",
+            // 上海球队 - 已有真实Logo
+            "上海烽火狼": "logos/shanghai-firewolf.png",
+            "上海鹰": "logos/shanghai-eagle.png",
+            "上海蓝魔": "logos/shanghai-bluedevil.png",
+            "上海Chang飓风": "logos/shanghai-changhurricane.png",
+            "上海鳄鱼": "logos/shanghai-crocodile.png",
+            "上海银河": "logos/shanghai-galaxy.png",
+            "上海坚毅坦克": "logos/shanghai-tank.png",
+            "上海AFA鲨鱼": "logos/shanghai-afashark.png",
+            "上海飓风角斗士": "logos/shanghai-hurricangladiator.png",
+            "上海幽灵虎": "logos/shanghai-ghosttiger.png",
             
-            // 江苏球队
-            "南京征服者": "logos/placeholder.png",
-            "苏州蓝骑士": "logos/placeholder.png",
+            // 江苏球队 - 已有真实Logo
+            "南京征服者": "logos/nanjing-conqueror.png",
+            "苏州蓝骑士": "logos/suzhou-blueknight.png",
             
-            // 浙江球队
-            "杭州将军": "logos/placeholder.png",
-            "杭州猛虎": "logos/placeholder.png",
-            "杭州四叶草": "logos/placeholder.png",
+            // 浙江球队 - 已有真实Logo
+            "杭州将军": "logos/hangzhou-general.png",
+            "杭州猛虎": "logos/hangzhou-tiger.png",
+            "杭州四叶草": "logos/hangzhou-clover.png",
             
-            // 新增球队 - 默认使用占位符
-            "西安传奇": "logos/placeholder.png",
-            "成都川渝幼师联队": "logos/placeholder.png",
-            "成都太阳鸟": "logos/placeholder.png",
-            "成都红潮": "logos/placeholder.png",
-            "武汉change巴萨卡": "logos/placeholder.png",
-            "武汉change眼镜蛇": "logos/placeholder.png",
-            "北京维肯": "logos/placeholder.png",
-            "北京黑曼巴": "logos/placeholder.png",
-            "北京雄狮": "logos/placeholder.png",
-            "青岛虎鲸": "logos/placeholder.png",
-            "济南眼镜蛇": "logos/placeholder.png"
+            // 西安球队 - 已有真实Logo
+            "西安传奇": "logos/xian-legend.png",
+            
+            // 成都球队 - 已有真实Logo
+            "成都川渝幼师联队": "logos/chengdu-chuanyuteacher.png",
+            "成都太阳鸟": "logos/chengdu-sunbird.png",
+            "成都红潮": "logos/chengdu-redtide.png",
+            
+            // 武汉球队 - 已有真实Logo
+            "武汉change巴萨卡": "logos/wuhan-changeberserker.png",
+            "武汉change眼镜蛇": "logos/wuhan-changecobra.png",
+            
+            // 北京球队 - 已有真实Logo
+            "北京维肯": "logos/beijing-wiking.png",
+            "北京黑曼巴": "logos/beijing-blackmamba.png",
+            "北京雄狮": "logos/beijing-lion.png",
+            
+            // 青岛球队 - 已有真实Logo
+            "青岛虎鲸": "logos/qingdao-orca.png",
+            
+            // 济南球队 - 已有真实Logo
+            "济南眼镜蛇": "logos/jinan-cobra.png"
         };
 
         // ================= 城市 & 球队数据 =================
@@ -508,7 +518,7 @@
                     { name: "杭州四叶草", age: "待确认" }
                 ]
             },
-            // 新增：西安
+            // 西安
             {
                 id: "xian",
                 name: "西安",
@@ -518,7 +528,7 @@
                     { name: "西安传奇", age: "U9 / U11 / U13 / U15" }
                 ]
             },
-            // 新增：成都
+            // 成都
             {
                 id: "chengdu",
                 name: "成都",
@@ -530,7 +540,7 @@
                     { name: "成都红潮", age: "待确认" }
                 ]
             },
-            // 新增：武汉
+            // 武汉
             {
                 id: "wuhan",
                 name: "武汉",
@@ -541,7 +551,7 @@
                     { name: "武汉change眼镜蛇", age: "U11" }
                 ]
             },
-            // 新增：北京
+            // 北京
             {
                 id: "beijing",
                 name: "北京",
@@ -553,7 +563,7 @@
                     { name: "北京雄狮", age: "待确认" }
                 ]
             },
-            // 新增：青岛
+            // 青岛
             {
                 id: "qingdao",
                 name: "青岛",
@@ -563,7 +573,7 @@
                     { name: "青岛虎鲸", age: "U11 / U13" }
                 ]
             },
-            // 新增：济南
+            // 济南
             {
                 id: "jinan",
                 name: "济南",
@@ -627,7 +637,7 @@
         const allConnectors = {};
         const allPopups = [];
 
-        // 创建默认占位符SVG
+        // 创建默认占位符SVG（当真实Logo加载失败时使用）
         const placeholderSVG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDYiIGhlaWdodD0iNDYiIHZpZXdCb3g9IjAgMCA0NiA0NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMjAiIGZpbGw9IiM2QjcyODAiLz4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMTciIGZpbGw9IiNFNUU3RUIiLz4KPHBhdGggZD0iTTIzIDEyVjM0TTE0IDIzSDMyIiBzdHJva2U9IiM2QjcyODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 
         // ================= 渲染城市球队 =================
@@ -927,6 +937,7 @@
             console.log(`   城市数量: ${citiesData.length}`);
             const totalTeams = citiesData.reduce((sum, city) => sum + city.teams.length, 0);
             console.log(`   球队总数: ${totalTeams}`);
+            console.log(`   真实Logo数量: ${Object.keys(teamLogos).length} 个`);
             console.log(`   移动端优化: 已启用`);
         });
 
