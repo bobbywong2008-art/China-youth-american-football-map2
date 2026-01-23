@@ -2,32 +2,51 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<title>广东青少年美式足球球队分布图（Demo）</title>
+<title>广东青少年美式足球球队分布图｜VISUAL PRO</title>
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
 <style>
-  html,body,#map{
-    height:100%;
-    margin:0;
-    background:#f5f6f7;
-  }
+html,body,#map{
+  height:100%;
+  margin:0;
+  background:#0f1624;
+}
 
-  .popup-card{
-    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue";
-  }
-  .popup-card h3{
-    margin:0 0 6px 0;
-    font-size:16px;
-  }
-  .popup-card p{
-    margin:0;
-    font-size:13px;
-    color:#555;
-  }
+.leaflet-container{
+  background:#0f1624;
+}
+
+/* ===== Logo 卡片 ===== */
+.team-icon{
+  width:56px;
+  height:56px;
+  background:#fff;
+  border-radius:50%;
+  box-shadow:0 6px 16px rgba(0,0,0,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.team-icon img{
+  width:44px;
+  height:44px;
+  object-fit:contain;
+}
+
+/* ===== 弹窗 ===== */
+.popup-card{
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue";
+}
+.popup-card h3{
+  margin:0 0 6px 0;
+  font-size:16px;
+}
+.popup-card p{
+  margin:0;
+  font-size:13px;
+  color:#555;
+}
 </style>
 </head>
 
@@ -36,23 +55,24 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-// ========== 1. 地图 ==========
+// ===== 地图 =====
 const map = L.map('map',{zoomControl:true})
-  .setView([23.2,113.3],7);
+  .setView([23.1,113.3],7);
 
+// 深色底图（体育感）
 L.tileLayer(
-  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
   {maxZoom:18}
 ).addTo(map);
 
-// ========== 2. Logo 映射表 ==========
+// ===== Logo 对照 =====
 const teamLogos = {
   "广州骑士":"logos/guangzhou-knights.png",
   "广州白鳍豚":"logos/guangzhou-dolphins.png",
   "佛山小兕虎":"logos/foshan-xiaoxihu.png"
 };
 
-// ========== 3. 广东球队数据 ==========
+// ===== 数据 =====
 const cities = [
   {
     city:"广州",
@@ -88,26 +108,41 @@ const cities = [
   }
 ];
 
-// ========== 4. 放射散开函数 ==========
-function spreadPoints(latlng,count,index){
+// ===== 放射展开 + 引导线 =====
+function spread(latlng,count,index){
   if(count===1) return latlng;
-  const r = 0.05;
-  const angle = (index/count)*Math.PI*2;
+  const r = 0.06;
+  const a = index/count*Math.PI*2;
   return [
-    latlng[0] + r*Math.cos(angle),
-    latlng[1] + r*Math.sin(angle)
+    latlng[0]+r*Math.cos(a),
+    latlng[1]+r*Math.sin(a)
   ];
 }
 
-// ========== 5. 渲染 ==========
+// ===== 渲染 =====
 cities.forEach(city=>{
   city.teams.forEach((team,i)=>{
-    const pos = spreadPoints(city.center,city.teams.length,i);
+    const pos = spread(city.center,city.teams.length,i);
 
-    const icon = L.icon({
-      iconUrl: teamLogos[team.name] || "logos/placeholder.png",
-      iconSize:[48,48],
-      iconAnchor:[24,24]
+    // 引导线
+    if(city.teams.length>1){
+      L.polyline([city.center,pos],{
+        color:"#4c6ef5",
+        weight:1,
+        opacity:.6
+      }).addTo(map);
+    }
+
+    // Logo 卡片
+    const icon = L.divIcon({
+      className:"",
+      html:`
+        <div class="team-icon">
+          <img src="${teamLogos[team.name]||'logos/placeholder.png'}">
+        </div>
+      `,
+      iconSize:[56,56],
+      iconAnchor:[28,28]
     });
 
     L.marker(pos,{icon})
@@ -124,3 +159,4 @@ cities.forEach(city=>{
 </script>
 </body>
 </html>
+
