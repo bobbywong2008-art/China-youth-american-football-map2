@@ -1,162 +1,728 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8" />
-<title>广东青少年美式足球球队分布图｜VISUAL PRO</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中国青少年美式足球球队分布图｜全国版</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body, #map {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+        /* === 球队图标样式 === */
+        .team-icon {
+            width: 58px;
+            height: 58px;
+            background: #ffffff;
+            border-radius: 50%;
+            border: 2px solid #3b82f6;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s ease;
+            cursor: pointer;
+        }
+        .team-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+            border-color: #1d4ed8;
+        }
+        .team-icon img {
+            width: 46px;
+            height: 46px;
+            object-fit: contain;
+        }
 
-<style>
-html,body,#map{
-  height:100%;
-  margin:0;
-  background:#0f1624;
-}
+        /* === 工具提示样式 === */
+        .leaflet-tooltip.team-tooltip {
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            font-size: 14px;
+            font-weight: 600;
+            color: #1f2937;
+            padding: 6px 12px;
+            margin-top: -10px;
+        }
+        .leaflet-tooltip-top.team-tooltip::before {
+            border-top-color: rgba(255, 255, 255, 0.95);
+        }
 
-.leaflet-container{
-  background:#0f1624;
-}
+        /* === 弹窗卡片样式 === */
+        .popup-card {
+            min-width: 200px;
+        }
+        .popup-card h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            color: #111827;
+        }
+        .popup-card p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #4b5563;
+        }
+        .popup-card .city {
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .popup-card .age-group {
+            color: #059669;
+            font-weight: 600;
+        }
 
-/* ===== Logo 卡片 ===== */
-.team-icon{
-  width:56px;
-  height:56px;
-  background:#fff;
-  border-radius:50%;
-  box-shadow:0 6px 16px rgba(0,0,0,.35);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.team-icon img{
-  width:44px;
-  height:44px;
-  object-fit:contain;
-}
+        /* === 连接线样式 === */
+        .city-connector {
+            stroke: #94a3b8;
+            stroke-width: 1.5;
+            stroke-dasharray: 5, 5;
+            opacity: 0.5;
+            fill: none;
+        }
 
-/* ===== 弹窗 ===== */
-.popup-card{
-  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue";
-}
-.popup-card h3{
-  margin:0 0 6px 0;
-  font-size:16px;
-}
-.popup-card p{
-  margin:0;
-  font-size:13px;
-  color:#555;
-}
-</style>
+        /* === 图例样式 === */
+        #legend {
+            position: absolute;
+            bottom: 25px;
+            right: 25px;
+            background: rgba(255, 255, 255, 0.97);
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+            z-index: 1000;
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 300px;
+            backdrop-filter: blur(4px);
+        }
+        #legend h4 {
+            margin: 0 0 12px 0;
+            color: #1f2937;
+            font-size: 15px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 8px;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 10px;
+            border: 1px solid #d1d5db;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .city-highlight {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        }
+
+        /* === 控制面板样式 === */
+        #control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.97);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e5e7eb;
+            z-index: 1000;
+            max-width: 280px;
+            font-size: 13px;
+            line-height: 1.5;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        #control-panel h4 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+            font-size: 15px;
+        }
+        .city-checkbox {
+            display: flex;
+            align-items: center;
+            margin: 6px 0;
+            cursor: pointer;
+        }
+        .city-checkbox input {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+        .city-checkbox label {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+        }
+        .city-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+        #toggle-all {
+            margin-top: 10px;
+            padding: 6px 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            width: 100%;
+        }
+        #toggle-all:hover {
+            background: #2563eb;
+        }
+
+        /* === 响应式调整 === */
+        @media (max-width: 768px) {
+            #legend {
+                bottom: 15px;
+                right: 15px;
+                left: 15px;
+                max-width: none;
+                padding: 15px;
+            }
+            #control-panel {
+                top: 15px;
+                left: 15px;
+                right: 15px;
+                max-width: none;
+                max-height: 60vh;
+            }
+            .team-icon {
+                width: 50px;
+                height: 50px;
+            }
+            .team-icon img {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
 </head>
-
 <body>
-<div id="map"></div>
+    <div id="map"></div>
+    <div id="control-panel">
+        <h4>🏈 城市筛选 (16个城市)</h4>
+        <div id="city-filters"></div>
+        <button id="toggle-all">显示/隐藏所有</button>
+    </div>
+    <div id="legend"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-// ===== 地图 =====
-const map = L.map('map',{zoomControl:true})
-  .setView([23.1,113.3],7);
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // ================= 初始化地图 =================
+        const map = L.map('map', {
+            zoomControl: true,
+            preferCanvas: true
+        }).setView([32.0, 110.0], 5);
 
-// 深色底图（体育感）
-L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-  {maxZoom:18}
-).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap, © CARTO',
+            maxZoom: 18,
+            subdomains: 'abcd'
+        }).addTo(map);
 
-// ===== Logo 对照 =====
-const teamLogos = {
-  "广州骑士":"logos/guangzhou-knights.png",
-  "广州白鳍豚":"logos/guangzhou-dolphins.png",
-  "佛山小兕虎":"logos/foshan-xiaoxihu.png"
-};
+        // ================= 球队 Logo 映射 =================
+        const teamLogos = {
+            // 广东球队
+            "广州骑士": "logos/guangzhou-knights.png",
+            "广州白鳍豚": "logos/guangzhou-dolphins.png",
+            "佛山小兕虎": "logos/foshan-xiaoxihu.png",
+            "珠海海东青": "logos/zhuhai-gyrfalcon.png",
+            "深圳鲲鹏": "logos/shenzhen-kunpeng.png",
+            "广州八爪鱼": "logos/placeholder.png",
+            "深圳热浪": "logos/placeholder.png",
+            "深圳火箭熊": "logos/placeholder.png",
+            
+            // 上海球队
+            "上海烽火狼": "logos/placeholder.png",
+            "上海鹰": "logos/placeholder.png",
+            "上海蓝魔": "logos/placeholder.png",
+            "上海Chang飓风": "logos/placeholder.png",
+            "上海鳄鱼": "logos/placeholder.png",
+            "上海银河": "logos/placeholder.png",
+            "上海坚毅坦克": "logos/placeholder.png",
+            "上海AFA鲨鱼": "logos/placeholder.png",
+            "上海飓风角斗士": "logos/placeholder.png",
+            "上海幽灵虎": "logos/placeholder.png",
+            
+            // 江苏球队
+            "南京征服者": "logos/placeholder.png",
+            "苏州蓝骑士": "logos/placeholder.png",
+            
+            // 浙江球队
+            "杭州将军": "logos/placeholder.png",
+            "杭州猛虎": "logos/placeholder.png",
+            "杭州四叶草": "logos/placeholder.png",
+            
+            // 新增球队 - 默认使用占位符
+            "西安传奇": "logos/placeholder.png",
+            "成都川渝幼师联队": "logos/placeholder.png",
+            "成都太阳鸟": "logos/placeholder.png",
+            "成都红潮": "logos/placeholder.png",
+            "武汉change巴萨卡": "logos/placeholder.png",
+            "武汉change眼镜蛇": "logos/placeholder.png",
+            "北京维肯": "logos/placeholder.png",
+            "北京黑曼巴": "logos/placeholder.png",
+            "北京雄狮": "logos/placeholder.png",
+            "青岛虎鲸": "logos/placeholder.png",
+            "济南眼镜蛇": "logos/placeholder.png"
+        };
 
-// ===== 数据 =====
-const cities = [
-  {
-    city:"广州",
-    center:[23.1291,113.2644],
-    teams:[
-      {name:"广州骑士", age:"U11 / U13"},
-      {name:"广州白鳍豚", age:"U11 / U13"},
-      {name:"广州八爪鱼", age:"U10"}
-    ]
-  },
-  {
-    city:"深圳",
-    center:[22.5431,114.0579],
-    teams:[
-      {name:"深圳鲲鹏", age:"U13"},
-      {name:"深圳热浪", age:"U13"},
-      {name:"深圳火箭熊", age:"U10"}
-    ]
-  },
-  {
-    city:"佛山",
-    center:[23.0215,113.1214],
-    teams:[
-      {name:"佛山小兕虎", age:"U9 / U11 / U13 / U15"}
-    ]
-  },
-  {
-    city:"珠海",
-    center:[22.2707,113.5767],
-    teams:[
-      {name:"珠海海东青", age:"待确认"}
-    ]
-  }
-];
+        // ================= 城市 & 球队数据 =================
+        const citiesData = [
+            // 广东地区
+            {
+                id: "guangzhou",
+                name: "广州",
+                center: [23.1291, 113.2644],
+                color: "#3b82f6",
+                teams: [
+                    { name: "广州骑士", age: "U11 / U13" },
+                    { name: "广州白鳍豚", age: "U11 / U13" },
+                    { name: "广州八爪鱼", age: "U10" }
+                ]
+            },
+            {
+                id: "shenzhen",
+                name: "深圳",
+                center: [22.5431, 114.0579],
+                color: "#10b981",
+                teams: [
+                    { name: "深圳鲲鹏", age: "U13" },
+                    { name: "深圳热浪", age: "U13" },
+                    { name: "深圳火箭熊", age: "U10" }
+                ]
+            },
+            {
+                id: "foshan",
+                name: "佛山",
+                center: [23.0215, 113.1214],
+                color: "#8b5cf6",
+                teams: [
+                    { name: "佛山小兕虎", age: "U9 / U11 / U13 / U15" }
+                ]
+            },
+            {
+                id: "zhuhai",
+                name: "珠海",
+                center: [22.2707, 113.5767],
+                color: "#f59e0b",
+                teams: [
+                    { name: "珠海海东青", age: "待确认" }
+                ]
+            },
+            // 上海地区
+            {
+                id: "shanghai",
+                name: "上海",
+                center: [31.2304, 121.4737],
+                color: "#ef4444",
+                teams: [
+                    { name: "上海烽火狼", age: "U9 / U11 / U13 / U15" },
+                    { name: "上海鹰", age: "U9 / U11 / U13 / U15" },
+                    { name: "上海蓝魔", age: "U11 / U13" },
+                    { name: "上海Chang飓风", age: "U11" },
+                    { name: "上海鳄鱼", age: "U9 / U11 / U13" },
+                    { name: "上海银河", age: "U9 / U11 / U13 / U15" },
+                    { name: "上海坚毅坦克", age: "U9 / U11" },
+                    { name: "上海AFA鲨鱼", age: "U9 / U11 / U13" },
+                    { name: "上海飓风角斗士", age: "U11" },
+                    { name: "上海幽灵虎", age: "U9" }
+                ]
+            },
+            // 江苏地区
+            {
+                id: "nanjing",
+                name: "南京",
+                center: [32.0603, 118.7969],
+                color: "#06b6d4",
+                teams: [
+                    { name: "南京征服者", age: "U11" }
+                ]
+            },
+            {
+                id: "suzhou",
+                name: "苏州",
+                center: [31.2989, 120.5853],
+                color: "#ec4899",
+                teams: [
+                    { name: "苏州蓝骑士", age: "U11" }
+                ]
+            },
+            // 浙江地区
+            {
+                id: "hangzhou",
+                name: "杭州",
+                center: [30.2741, 120.1551],
+                color: "#84cc16",
+                teams: [
+                    { name: "杭州将军", age: "U11" },
+                    { name: "杭州猛虎", age: "U13" },
+                    { name: "杭州四叶草", age: "待确认" }
+                ]
+            },
+            // 新增：西安
+            {
+                id: "xian",
+                name: "西安",
+                center: [34.3416, 108.9398],
+                color: "#8b5cf6",
+                teams: [
+                    { name: "西安传奇", age: "U9 / U11 / U13 / U15" }
+                ]
+            },
+            // 新增：成都
+            {
+                id: "chengdu",
+                name: "成都",
+                center: [30.5728, 104.0668],
+                color: "#f59e0b",
+                teams: [
+                    { name: "成都川渝幼师联队", age: "待确认" },
+                    { name: "成都太阳鸟", age: "待确认" },
+                    { name: "成都红潮", age: "待确认" }
+                ]
+            },
+            // 新增：武汉
+            {
+                id: "wuhan",
+                name: "武汉",
+                center: [30.5928, 114.3055],
+                color: "#10b981",
+                teams: [
+                    { name: "武汉change巴萨卡", age: "U9 / U11 / U13 / U15" },
+                    { name: "武汉change眼镜蛇", age: "U11" }
+                ]
+            },
+            // 新增：北京
+            {
+                id: "beijing",
+                name: "北京",
+                center: [39.9042, 116.4074],
+                color: "#3b82f6",
+                teams: [
+                    { name: "北京维肯", age: "U13" },
+                    { name: "北京黑曼巴", age: "U9 / U11" },
+                    { name: "北京雄狮", age: "待确认" }
+                ]
+            },
+            // 新增：青岛
+            {
+                id: "qingdao",
+                name: "青岛",
+                center: [36.0671, 120.3826],
+                color: "#06b6d4",
+                teams: [
+                    { name: "青岛虎鲸", age: "U11 / U13" }
+                ]
+            },
+            // 新增：济南
+            {
+                id: "jinan",
+                name: "济南",
+                center: [36.6512, 117.1200],
+                color: "#ec4899",
+                teams: [
+                    { name: "济南眼镜蛇", age: "待确认" }
+                ]
+            }
+        ];
 
-// ===== 放射展开 + 引导线 =====
-function spread(latlng,count,index){
-  if(count===1) return latlng;
-  const r = 0.06;
-  const a = index/count*Math.PI*2;
-  return [
-    latlng[0]+r*Math.cos(a),
-    latlng[1]+r*Math.sin(a)
-  ];
-}
+        // ================= 智能防重叠布局算法 =================
+        function calculateTeamPositions(center, teamCount) {
+            if (teamCount === 1) return [center];
+            
+            const positions = [];
+            // 根据球队数量调整基础半径
+            const baseRadius = 0.08 + (teamCount * 0.006);
+            
+            // 根据不同数量采用不同布局
+            if (teamCount === 2) {
+                // 两队：水平排列
+                positions.push([center[0], center[1] - baseRadius]);
+                positions.push([center[0], center[1] + baseRadius]);
+            } else if (teamCount === 3) {
+                // 三队：三角形排列
+                for (let i = 0; i < 3; i++) {
+                    const angle = (i * 120 - 90) * Math.PI / 180;
+                    positions.push([
+                        center[0] + baseRadius * Math.cos(angle) * 0.9,
+                        center[1] + baseRadius * Math.sin(angle)
+                    ]);
+                }
+            } else if (teamCount <= 6) {
+                // 4-6队：正多边形排列
+                for (let i = 0; i < teamCount; i++) {
+                    const angle = (i * 360 / teamCount - 90) * Math.PI / 180;
+                    positions.push([
+                        center[0] + baseRadius * Math.cos(angle) * 0.9,
+                        center[1] + baseRadius * Math.sin(angle)
+                    ]);
+                }
+            } else {
+                // 7队以上：螺旋排列（适合上海这种球队多的城市）
+                const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+                for (let i = 0; i < teamCount; i++) {
+                    const theta = i * goldenAngle;
+                    const radius = baseRadius * Math.sqrt(i + 1);
+                    positions.push([
+                        center[0] + radius * Math.cos(theta) * 1.1,
+                        center[1] + radius * Math.sin(theta)
+                    ]);
+                }
+            }
+            
+            return positions;
+        }
 
-// ===== 渲染 =====
-cities.forEach(city=>{
-  city.teams.forEach((team,i)=>{
-    const pos = spread(city.center,city.teams.length,i);
+        // ================= 存储地图元素 =================
+        const allMarkers = {};
+        const allConnectors = {};
+        const allPopups = [];
 
-    // 引导线
-    if(city.teams.length>1){
-      L.polyline([city.center,pos],{
-        color:"#4c6ef5",
-        weight:1,
-        opacity:.6
-      }).addTo(map);
-    }
+        // 创建默认占位符SVG
+        const placeholderSVG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDYiIGhlaWdodD0iNDYiIHZpZXdCb3g9IjAgMCA0NiA0NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMjAiIGZpbGw9IiM2QjcyODAiLz4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMTciIGZpbGw9IiNFNUU3RUIiLz4KPHBhdGggZD0iTTIzIDEyVjM0TTE0IDIzSDMyIiBzdHJva2U9IiM2QjcyODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 
-    // Logo 卡片
-    const icon = L.divIcon({
-      className:"",
-      html:`
-        <div class="team-icon">
-          <img src="${teamLogos[team.name]||'logos/placeholder.png'}">
-        </div>
-      `,
-      iconSize:[56,56],
-      iconAnchor:[28,28]
-    });
+        // ================= 渲染城市球队 =================
+        function renderCity(city, visible = true) {
+            // 清除该城市现有的标记和连接线
+            if (allMarkers[city.id]) {
+                allMarkers[city.id].forEach(marker => map.removeLayer(marker));
+                delete allMarkers[city.id];
+            }
+            
+            if (allConnectors[city.id]) {
+                allConnectors[city.id].forEach(connector => map.removeLayer(connector));
+                delete allConnectors[city.id];
+            }
 
-    L.marker(pos,{icon})
-      .addTo(map)
-      .bindPopup(`
-        <div class="popup-card">
-          <h3>${team.name}</h3>
-          <p>美式足球（装备）</p>
-          <p>梯队：${team.age}</p>
-        </div>
-      `);
-  });
-});
-</script>
+            if (!visible) return;
+
+            const teamCount = city.teams.length;
+            const teamPositions = calculateTeamPositions(city.center, teamCount);
+            
+            allMarkers[city.id] = [];
+            allConnectors[city.id] = [];
+
+            // 绘制连接线（只有多于一个球队时）
+            if (teamCount > 1) {
+                teamPositions.forEach(position => {
+                    const connector = L.polyline([city.center, position], {
+                        className: 'city-connector',
+                        color: city.color,
+                        weight: 1.2,
+                        opacity: 0.3,
+                        smoothFactor: 1
+                    }).addTo(map);
+                    allConnectors[city.id].push(connector);
+                });
+            }
+
+            // 创建每个球队的标记
+            city.teams.forEach((team, index) => {
+                const teamPosition = teamPositions[index];
+
+                const icon = L.divIcon({
+                    className: 'team-marker',
+                    html: `
+                        <div class="team-icon" style="border-color: ${city.color}">
+                            <img src="${teamLogos[team.name] || 'logos/placeholder.png'}" 
+                                 alt="${team.name} Logo" 
+                                 onerror="this.src='${placeholderSVG}'">
+                        </div>
+                    `,
+                    iconSize: [58, 58],
+                    iconAnchor: [29, 29]
+                });
+
+                const marker = L.marker(teamPosition, { icon })
+                    .addTo(map)
+                    .bindTooltip(team.name, {
+                        permanent: false,
+                        direction: 'top',
+                        offset: [0, -35],
+                        className: 'team-tooltip',
+                        opacity: 0.95
+                    })
+                    .bindPopup(`
+                        <div class="popup-card">
+                            <h3>${team.name}</h3>
+                            <p><strong>城市：</strong><span class="city">${city.name}</span></p>
+                            <p><strong>项目：</strong>美式足球（装备）</p>
+                            <p><strong>梯队：</strong><span class="age-group">${team.age}</span></p>
+                            <p style="font-size:12px; color:#9ca3af; margin-top:10px; border-top:1px solid #e5e7eb; padding-top:8px;">
+                                <em>点击地图其他区域关闭弹窗</em>
+                            </p>
+                        </div>
+                    `, {
+                        closeButton: true,
+                        maxWidth: 300,
+                        minWidth: 220,
+                        autoPan: true
+                    });
+
+                allMarkers[city.id].push(marker);
+                allPopups.push(marker.getPopup());
+
+                // 悬停效果
+                marker.on('mouseover', function () {
+                    this._icon.classList.add('city-highlight');
+                });
+                marker.on('mouseout', function () {
+                    this._icon.classList.remove('city-highlight');
+                });
+            });
+        }
+
+        // ================= 初始化城市筛选面板 =================
+        function initCityFilters() {
+            const filtersContainer = document.getElementById('city-filters');
+            
+            citiesData.forEach(city => {
+                const checkboxId = `city-${city.id}`;
+                const checkbox = document.createElement('div');
+                checkbox.className = 'city-checkbox';
+                checkbox.innerHTML = `
+                    <input type="checkbox" id="${checkboxId}" checked>
+                    <label for="${checkboxId}">
+                        <span class="city-color" style="background-color: ${city.color}"></span>
+                        ${city.name} (${city.teams.length}队)
+                    </label>
+                `;
+                
+                checkbox.querySelector('input').addEventListener('change', function() {
+                    renderCity(city, this.checked);
+                    updateLegend();
+                });
+                
+                filtersContainer.appendChild(checkbox);
+                renderCity(city, true);
+            });
+        }
+
+        // ================= 创建并更新图例 =================
+        function updateLegend() {
+            const visibleCities = citiesData.filter(city => {
+                const checkbox = document.getElementById(`city-${city.id}`);
+                return checkbox ? checkbox.checked : true;
+            });
+            
+            const totalTeams = visibleCities.reduce((sum, city) => sum + city.teams.length, 0);
+
+            let legendContent = `
+                <h4>🏈 青少年装备橄榄球分布图</h4>
+                <p><strong>显示城市：</strong>${visibleCities.length} / ${citiesData.length} 个</p>
+                <p><strong>显示球队：</strong>${totalTeams} 支</p>
+                <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e5e7eb;">
+                    <p style="margin-bottom:8px; font-weight:600;">颜色对应：</p>
+            `;
+            
+            // 只显示当前可见的城市
+            visibleCities.slice(0, 8).forEach(city => {
+                legendContent += `
+                    <div class="legend-item">
+                        <span class="legend-color" style="background-color: ${city.color}"></span>
+                        <span>${city.name} (${city.teams.length}队)</span>
+                    </div>
+                `;
+            });
+
+            if (visibleCities.length > 8) {
+                legendContent += `<div class="legend-item"><span>... 及其他 ${visibleCities.length - 8} 个城市</span></div>`;
+            }
+
+            legendContent += `
+                </div>
+                <p style="font-size:12px; color:#6b7280; margin-top:12px; line-height:1.4;">
+                    <strong>交互提示：</strong>鼠标悬停显示队名，点击图标查看详情，点击地图空白处关闭弹窗。
+                </p>
+            `;
+
+            document.getElementById('legend').innerHTML = legendContent;
+        }
+
+        // ================= 初始化 =================
+        document.addEventListener('DOMContentLoaded', function() {
+            initCityFilters();
+            updateLegend();
+
+            // 更新控制面板标题
+            document.querySelector('#control-panel h4').textContent = `🏈 城市筛选 (${citiesData.length}个城市)`;
+
+            // 添加显示/隐藏所有按钮功能
+            document.getElementById('toggle-all').addEventListener('click', function() {
+                const checkboxes = document.querySelectorAll('#city-filters input[type="checkbox"]');
+                const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+                
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = !allChecked;
+                    const cityId = checkbox.id.replace('city-', '');
+                    const city = citiesData.find(c => c.id === cityId);
+                    if (city) renderCity(city, !allChecked);
+                });
+                
+                updateLegend();
+            });
+
+            // 地图点击关闭所有弹窗
+            map.on('click', function (e) {
+                allPopups.forEach(popup => {
+                    if (popup && popup.isOpen()) {
+                        map.closePopup(popup);
+                    }
+                });
+            });
+
+            // 控制台信息
+            console.log(`🏈 青少年装备橄榄球地图已加载！`);
+            console.log(`   城市数量: ${citiesData.length}`);
+            const totalTeams = citiesData.reduce((sum, city) => sum + city.teams.length, 0);
+            console.log(`   球队总数: ${totalTeams}`);
+            console.log(`   新增城市: 西安、成都、武汉、北京、青岛、济南`);
+        });
+
+        // ================= 窗口大小调整处理 =================
+        window.addEventListener('resize', function() {
+            const legend = document.getElementById('legend');
+            const controlPanel = document.getElementById('control-panel');
+            
+            if (window.innerWidth <= 768) {
+                legend.style.right = '15px';
+                legend.style.left = '15px';
+                legend.style.bottom = '15px';
+                legend.style.maxWidth = 'none';
+                
+                controlPanel.style.left = '15px';
+                controlPanel.style.right = '15px';
+                controlPanel.style.maxWidth = 'none';
+            } else {
+                legend.style.right = '25px';
+                legend.style.left = 'auto';
+                legend.style.bottom = '25px';
+                legend.style.maxWidth = '300px';
+                
+                controlPanel.style.left = '20px';
+                controlPanel.style.right = 'auto';
+                controlPanel.style.maxWidth = '280px';
+            }
+        });
+    </script>
 </body>
 </html>
-
