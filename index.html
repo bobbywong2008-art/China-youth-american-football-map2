@@ -93,7 +93,7 @@
             bottom: 25px;
             right: 25px;
             background: rgba(255, 255, 255, 0.97);
-            padding: 18px;
+            padding: 15px;
             border-radius: 12px;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             border: 1px solid #e5e7eb;
@@ -128,28 +128,76 @@
             box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
         }
 
-        /* === 控制面板样式 === */
+        /* === 控制面板样式 - 可折叠式 === */
         #control-panel {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.97);
-            padding: 15px;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 0;
             border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
             border: 1px solid #e5e7eb;
             z-index: 1000;
             max-width: 280px;
             font-size: 13px;
             line-height: 1.5;
-            max-height: 80vh;
-            overflow-y: auto;
+            max-height: none;
+            overflow: visible;
+            transition: all 0.3s ease;
         }
-        #control-panel h4 {
-            margin: 0 0 10px 0;
+
+        /* 控制面板标题栏（可点击折叠） */
+        .panel-header {
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .panel-header h4 {
+            margin: 0;
             color: #1f2937;
-            font-size: 15px;
+            font-size: 14px;
+            font-weight: 600;
         }
+
+        .panel-toggle {
+            font-size: 18px;
+            color: #6b7280;
+            transition: transform 0.3s ease;
+        }
+
+        .panel-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        /* 面板内容区域 */
+        .panel-content {
+            padding: 15px;
+            max-height: 50vh;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        /* 折叠状态 */
+        #control-panel.collapsed .panel-content {
+            display: none;
+        }
+
+        #control-panel.collapsed {
+            max-width: 180px;
+        }
+
+        /* 城市筛选复选框区域 */
+        #city-filters {
+            margin-bottom: 10px;
+        }
+
         .city-checkbox {
             display: flex;
             align-items: center;
@@ -175,7 +223,7 @@
         }
         #toggle-all {
             margin-top: 10px;
-            padding: 6px 12px;
+            padding: 8px 12px;
             background: #3b82f6;
             color: white;
             border: none;
@@ -183,45 +231,127 @@
             cursor: pointer;
             font-size: 12px;
             width: 100%;
+            font-weight: 600;
         }
         #toggle-all:hover {
             background: #2563eb;
         }
 
-        /* === 响应式调整 === */
+        /* === 移动端专属优化 === */
         @media (max-width: 768px) {
-            #legend {
-                bottom: 15px;
-                right: 15px;
-                left: 15px;
-                max-width: none;
-                padding: 15px;
+            /* 地图容器 */
+            #map {
+                padding-top: 60px;
             }
+            
+            /* 控制面板在移动端的定位 */
             #control-panel {
-                top: 15px;
-                left: 15px;
-                right: 15px;
+                top: 10px;
+                left: 10px;
+                right: 10px;
                 max-width: none;
-                max-height: 60vh;
+                width: auto;
             }
+            
+            /* 移动端默认折叠控制面板 */
+            #control-panel.collapsed {
+                max-width: none;
+                width: auto;
+            }
+            
+            #control-panel.collapsed .panel-header h4 {
+                font-size: 13px;
+            }
+            
+            /* 图例在移动端位置 */
+            #legend {
+                bottom: 10px;
+                right: 10px;
+                left: 10px;
+                padding: 12px;
+                font-size: 12px;
+                max-width: none;
+                cursor: pointer;
+            }
+            
+            /* 移动端球队图标稍小 */
             .team-icon {
-                width: 50px;
-                height: 50px;
+                width: 48px;
+                height: 48px;
             }
+            
             .team-icon img {
-                width: 40px;
-                height: 40px;
+                width: 38px;
+                height: 38px;
+            }
+            
+            /* 工具提示优化 */
+            .leaflet-tooltip.team-tooltip {
+                font-size: 12px;
+                padding: 4px 8px;
+                margin-top: -8px;
+            }
+            
+            /* 弹窗优化 */
+            .popup-card {
+                min-width: 180px;
+                font-size: 13px;
+            }
+            
+            .popup-card h3 {
+                font-size: 16px;
+            }
+            
+            /* 连接线更细 */
+            .city-connector {
+                stroke-width: 1px;
+            }
+        }
+
+        /* 小屏幕手机额外优化 */
+        @media (max-width: 480px) {
+            .team-icon {
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                min-height: 44px;
+            }
+            
+            .team-icon img {
+                width: 34px;
+                height: 34px;
+            }
+            
+            #legend {
+                padding: 10px;
+                font-size: 11px;
+            }
+            
+            #control-panel.collapsed {
+                max-width: 150px;
             }
         }
     </style>
 </head>
 <body>
     <div id="map"></div>
-    <div id="control-panel">
-        <h4>🏈 城市筛选 (16个城市)</h4>
-        <div id="city-filters"></div>
-        <button id="toggle-all">显示/隐藏所有</button>
+    
+    <!-- 可折叠控制面板 -->
+    <div id="control-panel" class="collapsed">
+        <div class="panel-header">
+            <h4>🏈 城市筛选 (16个城市)</h4>
+            <span class="panel-toggle">▼</span>
+        </div>
+        <div class="panel-content">
+            <div id="city-filters"></div>
+            <button id="toggle-all">显示/隐藏所有</button>
+            <div style="font-size:11px; color:#6b7280; margin-top:10px;">
+                <p>✓ 点击城市名筛选<br>✓ 点击图标查看详情</p>
+            </div>
+        </div>
     </div>
+    
+    <!-- 图例 -->
     <div id="legend"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -625,43 +755,145 @@
             });
             
             const totalTeams = visibleCities.reduce((sum, city) => sum + city.teams.length, 0);
+            const isMobile = window.innerWidth <= 768;
 
-            let legendContent = `
-                <h4>🏈 青少年装备橄榄球分布图</h4>
-                <p><strong>显示城市：</strong>${visibleCities.length} / ${citiesData.length} 个</p>
-                <p><strong>显示球队：</strong>${totalTeams} 支</p>
-                <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e5e7eb;">
-                    <p style="margin-bottom:8px; font-weight:600;">颜色对应：</p>
-            `;
+            let legendContent;
             
-            // 只显示当前可见的城市
-            visibleCities.slice(0, 8).forEach(city => {
-                legendContent += `
-                    <div class="legend-item">
-                        <span class="legend-color" style="background-color: ${city.color}"></span>
-                        <span>${city.name} (${city.teams.length}队)</span>
+            if (isMobile) {
+                // 移动端简化版图例
+                legendContent = `
+                    <h4 style="margin:0 0 8px 0; font-size:14px;">🏈 ${visibleCities.length}城/${totalTeams}队</h4>
+                    <div style="font-size:12px; color:#6b7280; line-height:1.4;">
+                        <p>点击上方<b style="color:#3b82f6; margin:0 3px;">▼</b>筛选城市</p>
+                        <p>点击球队图标查看详情</p>
+                        <p style="margin-top:6px; font-size:11px; color:#9ca3af;">点击此处展开完整图例</p>
                     </div>
                 `;
-            });
+            } else {
+                // 桌面端完整图例
+                legendContent = `
+                    <h4>🏈 青少年装备橄榄球分布图</h4>
+                    <p><strong>显示城市：</strong>${visibleCities.length} / ${citiesData.length} 个</p>
+                    <p><strong>显示球队：</strong>${totalTeams} 支</p>
+                    <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e5e7eb;">
+                        <p style="margin-bottom:8px; font-weight:600;">颜色对应：</p>
+                `;
+                
+                // 只显示当前可见的城市
+                visibleCities.slice(0, 8).forEach(city => {
+                    legendContent += `
+                        <div class="legend-item">
+                            <span class="legend-color" style="background-color: ${city.color}"></span>
+                            <span>${city.name} (${city.teams.length}队)</span>
+                        </div>
+                    `;
+                });
 
-            if (visibleCities.length > 8) {
-                legendContent += `<div class="legend-item"><span>... 及其他 ${visibleCities.length - 8} 个城市</span></div>`;
+                if (visibleCities.length > 8) {
+                    legendContent += `<div class="legend-item"><span>... 及其他 ${visibleCities.length - 8} 个城市</span></div>`;
+                }
+
+                legendContent += `
+                    </div>
+                    <p style="font-size:12px; color:#6b7280; margin-top:12px; line-height:1.4;">
+                        <strong>交互提示：</strong>鼠标悬停显示队名，点击图标查看详情，点击地图空白处关闭弹窗。
+                    </p>
+                `;
             }
 
-            legendContent += `
-                </div>
-                <p style="font-size:12px; color:#6b7280; margin-top:12px; line-height:1.4;">
-                    <strong>交互提示：</strong>鼠标悬停显示队名，点击图标查看详情，点击地图空白处关闭弹窗。
-                </p>
-            `;
-
             document.getElementById('legend').innerHTML = legendContent;
+            
+            // 移动端图例点击展开功能
+            if (isMobile) {
+                const legend = document.getElementById('legend');
+                const originalContent = legend.innerHTML;
+                
+                legend.addEventListener('click', function() {
+                    if (this.getAttribute('data-expanded') === 'true') {
+                        this.innerHTML = originalContent;
+                        this.setAttribute('data-expanded', 'false');
+                    } else {
+                        // 创建展开的图例内容
+                        let expandedContent = `
+                            <h4 style="margin:0 0 10px 0; font-size:14px;">🏈 完整图例</h4>
+                            <p><strong>显示城市：</strong>${visibleCities.length} / ${citiesData.length} 个</p>
+                            <p><strong>显示球队：</strong>${totalTeams} 支</p>
+                            <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
+                                <p style="margin-bottom:6px; font-weight:600;">城市列表：</p>
+                        `;
+                        
+                        visibleCities.forEach(city => {
+                            expandedContent += `
+                                <div class="legend-item" style="margin:4px 0;">
+                                    <span class="legend-color" style="background-color: ${city.color}"></span>
+                                    <span style="font-size:11px;">${city.name} (${city.teams.length}队)</span>
+                                </div>
+                            `;
+                        });
+                        
+                        expandedContent += `
+                            </div>
+                            <p style="font-size:11px; color:#6b7280; margin-top:10px; line-height:1.4;">
+                                <strong>操作指南：</strong><br>
+                                • 点击顶部面板筛选城市<br>
+                                • 点击球队图标查看详情<br>
+                                • 点击地图关闭弹窗<br>
+                                • 双击地图缩放
+                            </p>
+                            <p style="font-size:10px; color:#9ca3af; margin-top:8px; text-align:center;">
+                                点击此处收起图例
+                            </p>
+                        `;
+                        
+                        this.innerHTML = expandedContent;
+                        this.setAttribute('data-expanded', 'true');
+                    }
+                });
+                
+                legend.setAttribute('data-expanded', 'false');
+            }
+        }
+
+        // ================= 移动端优化功能 =================
+        function initMobileOptimizations() {
+            const controlPanel = document.getElementById('control-panel');
+            const panelHeader = document.querySelector('.panel-header');
+            const panelToggle = document.querySelector('.panel-toggle');
+            
+            // 1. 控制面板折叠/展开功能
+            if (panelHeader) {
+                panelHeader.addEventListener('click', function() {
+                    controlPanel.classList.toggle('collapsed');
+                    panelToggle.classList.toggle('collapsed');
+                });
+            }
+            
+            // 2. 移动端默认折叠控制面板
+            if (window.innerWidth <= 768) {
+                controlPanel.classList.add('collapsed');
+                if (panelToggle) panelToggle.classList.add('collapsed');
+            }
+            
+            // 3. 移动端触摸优化
+            if ('ontouchstart' in window) {
+                // 增加触摸目标大小
+                const teamIcons = document.querySelectorAll('.team-icon');
+                teamIcons.forEach(icon => {
+                    icon.style.minWidth = '44px';
+                    icon.style.minHeight = '44px';
+                });
+                
+                // 优化弹窗关闭按钮
+                L.popup().options.closeButton = true;
+                L.popup().options.closeOnClick = false;
+            }
         }
 
         // ================= 初始化 =================
         document.addEventListener('DOMContentLoaded', function() {
             initCityFilters();
             updateLegend();
+            initMobileOptimizations();
 
             // 更新控制面板标题
             document.querySelector('#control-panel h4').textContent = `🏈 城市筛选 (${citiesData.length}个城市)`;
@@ -695,32 +927,23 @@
             console.log(`   城市数量: ${citiesData.length}`);
             const totalTeams = citiesData.reduce((sum, city) => sum + city.teams.length, 0);
             console.log(`   球队总数: ${totalTeams}`);
-            console.log(`   新增城市: 西安、成都、武汉、北京、青岛、济南`);
+            console.log(`   移动端优化: 已启用`);
         });
 
         // ================= 窗口大小调整处理 =================
         window.addEventListener('resize', function() {
-            const legend = document.getElementById('legend');
-            const controlPanel = document.getElementById('control-panel');
+            updateLegend();
             
+            const controlPanel = document.getElementById('control-panel');
+            const panelToggle = document.querySelector('.panel-toggle');
+            
+            // 移动端/桌面端切换时调整控制面板状态
             if (window.innerWidth <= 768) {
-                legend.style.right = '15px';
-                legend.style.left = '15px';
-                legend.style.bottom = '15px';
-                legend.style.maxWidth = 'none';
-                
-                controlPanel.style.left = '15px';
-                controlPanel.style.right = '15px';
-                controlPanel.style.maxWidth = 'none';
+                controlPanel.classList.add('collapsed');
+                if (panelToggle) panelToggle.classList.add('collapsed');
             } else {
-                legend.style.right = '25px';
-                legend.style.left = 'auto';
-                legend.style.bottom = '25px';
-                legend.style.maxWidth = '300px';
-                
-                controlPanel.style.left = '20px';
-                controlPanel.style.right = 'auto';
-                controlPanel.style.maxWidth = '280px';
+                controlPanel.classList.remove('collapsed');
+                if (panelToggle) panelToggle.classList.remove('collapsed');
             }
         });
     </script>
