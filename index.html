@@ -339,7 +339,7 @@
     <!-- 可折叠控制面板 -->
     <div id="control-panel" class="collapsed">
         <div class="panel-header">
-            <h4>🏈 城市筛选 (16个城市)</h4>
+            <h4>🏈 城市筛选 (17个城市)</h4>
             <span class="panel-toggle">▼</span>
         </div>
         <div class="panel-content">
@@ -405,13 +405,15 @@
             "西安传奇": "logos/xian-legend.png",
             
             // 成都球队 - 已有真实Logo
-            "成都川渝幼师联队": "logos/chengdu-chuanyuteacher.png",
+            "成都川渝幼狮联队": "logos/chengdu-chuanyuteacher.png",
             "成都太阳鸟": "logos/chengdu-sunbird.png",
             "成都红潮": "logos/chengdu-redtide.png",
+            "成都飞虎": "logos/chengdu-flyingtigers.png", // 新增球队，使用占位符
             
             // 武汉球队 - 已有真实Logo
             "武汉change巴萨卡": "logos/wuhan-changeberserker.png",
             "武汉change眼镜蛇": "logos/wuhan-changecobra.png",
+            "武汉赤焰": "logos/wuhan-chiyan.png", // 新增球队，使用占位符
             
             // 北京球队 - 已有真实Logo
             "北京维肯": "logos/beijing-wiking.png",
@@ -422,7 +424,10 @@
             "青岛虎鲸": "logos/qingdao-orca.png",
             
             // 济南球队 - 已有真实Logo
-            "济南眼镜蛇": "logos/jinan-cobra.png"
+            "济南眼镜蛇": "logos/jinan-cobra.png",
+            
+            // 东营球队 - 新增球队（使用占位符，未来可替换为真实Logo）
+            "东营火凤凰": "logos/dongying-huofenghuang.png"
         };
 
         // ================= 城市 & 球队数据 =================
@@ -503,7 +508,7 @@
                 center: [31.2989, 120.5853],
                 color: "#ec4899",
                 teams: [
-                    { name: "苏州蓝骑士", age: "U11" }
+                    { name: "苏州蓝骑士", age: "U9 / U11" }
                 ]
             },
             // 浙江地区
@@ -535,9 +540,10 @@
                 center: [30.5728, 104.0668],
                 color: "#f59e0b",
                 teams: [
-                    { name: "成都川渝幼师联队", age: "待确认" },
+                    { name: "成都川渝幼狮联队", age: "待确认" },
                     { name: "成都太阳鸟", age: "待确认" },
-                    { name: "成都红潮", age: "待确认" }
+                    { name: "成都红潮", age: "待确认" },
+                    { name: "成都飞虎", age: "待确认" } // 新增球队
                 ]
             },
             // 武汉
@@ -548,7 +554,8 @@
                 color: "#10b981",
                 teams: [
                     { name: "武汉change巴萨卡", age: "U9 / U11 / U13 / U15" },
-                    { name: "武汉change眼镜蛇", age: "U11" }
+                    { name: "武汉change眼镜蛇", age: "U11" },
+                    { name: "武汉赤焰", age: "待确认" } // 新增球队
                 ]
             },
             // 北京
@@ -581,6 +588,16 @@
                 color: "#ec4899",
                 teams: [
                     { name: "济南眼镜蛇", age: "待确认" }
+                ]
+            },
+            // 新增：东营
+            {
+                id: "dongying",
+                name: "东营",
+                center: [37.433, 118.674],
+                color: "#f97316",
+                teams: [
+                    { name: "东营火凤凰", age: "待确认" }
                 ]
             }
         ];
@@ -936,8 +953,9 @@
             console.log(`🏈 青少年装备橄榄球地图已加载！`);
             console.log(`   城市数量: ${citiesData.length}`);
             const totalTeams = citiesData.reduce((sum, city) => sum + city.teams.length, 0);
-            console.log(`   球队总数: ${totalTeams}`);
+            console.log(`   球队总数: ${totalTeams} 支`);
             console.log(`   真实Logo数量: ${Object.keys(teamLogos).length} 个`);
+            console.log(`   新增球队: 武汉赤焰、成都飞虎 ✅`);
             console.log(`   移动端优化: 已启用`);
         });
 
