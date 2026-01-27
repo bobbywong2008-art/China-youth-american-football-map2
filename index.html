@@ -3,188 +3,416 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>中国青少年美式足球球队分布图｜全国版</title>
+    <meta name="description" content="中国青少年美式足球（装备橄榄球）球队分布地图，涵盖全国17个城市的青少年美式足球球队信息">
+    <meta name="keywords" content="美式足球,橄榄球,青少年体育,中国橄榄球,球队分布,体育地图">
+    <meta name="author" content="中国青少年美式足球地图">
+    <title>中国青少年美式足球球队分布图｜全国版 (17城市)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         html, body, #map {
             height: 100%;
             margin: 0;
             padding: 0;
             background: #f8fafc;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans SC", sans-serif;
         }
 
-        /* === 球队图标样式 === */
+        /* ===== 加载动画 ===== */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease-out;
+        }
+        .loading-logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 20px;
+            animation: pulse 2s infinite;
+        }
+        .loading-text {
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-top: 5px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+        /* ===== 球队图标样式 ===== */
         .team-icon {
             width: 58px;
             height: 58px;
-            background: #ffffff;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             border-radius: 50%;
-            border: 2px solid #3b82f6;
+            border: 3px solid;
             box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.25s ease;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
+            position: relative;
+            overflow: hidden;
         }
         .team-icon:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
-            border-color: #1d4ed8;
+            transform: scale(1.15);
+            box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+            z-index: 1000;
+        }
+        .team-icon:hover::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(255,255,255,0.8) 0%, transparent 70%);
         }
         .team-icon img {
             width: 46px;
             height: 46px;
             object-fit: contain;
+            z-index: 2;
+            position: relative;
+            transition: transform 0.25s ease;
+        }
+        .team-icon:hover img {
+            transform: scale(1.1);
         }
 
-        /* === 工具提示样式 === */
+        /* ===== 工具提示样式 ===== */
         .leaflet-tooltip.team-tooltip {
-            background-color: rgba(255, 255, 255, 0.95);
+            background-color: rgba(255, 255, 255, 0.98);
             border: 1px solid #d1d5db;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border-radius: 10px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             color: #1f2937;
-            padding: 6px 12px;
+            padding: 8px 14px;
             margin-top: -10px;
+            backdrop-filter: blur(4px);
+            border-left: 4px solid #3b82f6;
         }
         .leaflet-tooltip-top.team-tooltip::before {
-            border-top-color: rgba(255, 255, 255, 0.95);
+            border-top-color: rgba(255, 255, 255, 0.98);
         }
 
-        /* === 弹窗卡片样式 === */
+        /* ===== 弹窗卡片样式 ===== */
         .popup-card {
-            min-width: 200px;
+            min-width: 280px;
+            max-width: 320px;
+            padding: 5px;
         }
-        .popup-card h3 {
-            margin: 0 0 8px 0;
-            font-size: 18px;
+        .popup-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        .popup-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            margin-right: 15px;
+            object-fit: contain;
+            background: #f8fafc;
+            padding: 5px;
+            border: 2px solid #e5e7eb;
+        }
+        .popup-header h3 {
+            margin: 0;
+            font-size: 20px;
             color: #111827;
+            flex: 1;
         }
-        .popup-card p {
-            margin: 5px 0;
+        .popup-body p {
+            margin: 8px 0;
             font-size: 14px;
             color: #4b5563;
+            display: flex;
         }
-        .popup-card .city {
+        .popup-body strong {
+            min-width: 70px;
+            color: #374151;
+            font-weight: 600;
+        }
+        .popup-body .city {
             color: #3b82f6;
-            font-weight: 600;
+            font-weight: 700;
+            background: rgba(59, 130, 246, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
         }
-        .popup-card .age-group {
+        .popup-body .age-group {
             color: #059669;
+            font-weight: 700;
+            background: rgba(5, 150, 105, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .popup-footer {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #9ca3af;
+            text-align: center;
+        }
+        .popup-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .popup-btn {
+            flex: 1;
+            padding: 6px 12px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
             font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        .popup-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        .popup-btn.secondary {
+            background: #6b7280;
+        }
+        .popup-btn.secondary:hover {
+            background: #4b5563;
         }
 
-        /* === 连接线样式 === */
+        /* ===== 连接线样式 ===== */
         .city-connector {
             stroke: #94a3b8;
             stroke-width: 1.5;
             stroke-dasharray: 5, 5;
             opacity: 0.5;
             fill: none;
+            transition: opacity 0.3s;
+        }
+        .city-connector.highlight {
+            opacity: 0.8;
+            stroke-width: 2;
+            stroke-dasharray: none;
         }
 
-        /* === 图例样式 === */
+        /* ===== 图例样式 ===== */
         #legend {
             position: absolute;
             bottom: 25px;
             right: 25px;
-            background: rgba(255, 255, 255, 0.97);
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            border: 1px solid #e5e7eb;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 18px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(229, 231, 235, 0.8);
             z-index: 1000;
-            font-size: 13px;
-            line-height: 1.5;
-            max-width: 300px;
-            backdrop-filter: blur(4px);
+            font-size: 14px;
+            line-height: 1.6;
+            max-width: 320px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
         }
         #legend h4 {
-            margin: 0 0 12px 0;
+            margin: 0 0 15px 0;
             color: #1f2937;
-            font-size: 15px;
-            border-bottom: 1px solid #e5e7eb;
-            padding-bottom: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+        }
+        #legend h4 i {
+            margin-right: 10px;
+            color: #3b82f6;
+        }
+        .legend-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .stat-box {
+            background: rgba(59, 130, 246, 0.05);
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1f2937;
+            display: block;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6b7280;
         }
         .legend-color {
             display: inline-block;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            margin-right: 10px;
-            border: 1px solid #d1d5db;
+            margin-right: 12px;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
         }
         .legend-item {
             display: flex;
             align-items: center;
-            margin: 8px 0;
+            margin: 10px 0;
+            padding: 6px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 6px;
+            padding-left: 8px;
         }
-        .city-highlight {
-            border-color: #ef4444 !important;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        .legend-item:hover {
+            background: rgba(59, 130, 246, 0.08);
+            transform: translateX(5px);
+        }
+        .legend-item.active .city-name {
+            font-weight: 700;
+            color: #1f2937;
+        }
+        .city-name {
+            flex: 1;
+            font-weight: 600;
+        }
+        .team-count {
+            background: #e5e7eb;
+            color: #4b5563;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+        .legend-actions {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .legend-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .legend-btn:hover {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+        .legend-btn.primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .legend-btn.primary:hover {
+            background: #2563eb;
         }
 
-        /* === 控制面板样式 - 可折叠式 === */
+        /* ===== 控制面板样式 ===== */
         #control-panel {
             position: absolute;
             top: 15px;
             left: 15px;
             background: rgba(255, 255, 255, 0.98);
             padding: 0;
-            border-radius: 12px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(229, 231, 235, 0.8);
             z-index: 1000;
-            max-width: 280px;
-            font-size: 13px;
-            line-height: 1.5;
+            max-width: 320px;
+            font-size: 14px;
+            line-height: 1.6;
             max-height: none;
             overflow: visible;
             transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
         }
 
-        /* 控制面板标题栏（可点击折叠） */
         .panel-header {
-            padding: 12px 15px;
+            padding: 15px 20px;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 2px solid #e5e7eb;
             background: rgba(59, 130, 246, 0.05);
-            border-radius: 12px 12px 0 0;
+            border-radius: 16px 16px 0 0;
         }
 
         .panel-header h4 {
             margin: 0;
             color: #1f2937;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .panel-toggle {
-            font-size: 18px;
+            font-size: 16px;
             color: #6b7280;
             transition: transform 0.3s ease;
+            background: rgba(255,255,255,0.8);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .panel-toggle.collapsed {
             transform: rotate(-90deg);
         }
 
-        /* 面板内容区域 */
         .panel-content {
-            padding: 15px;
-            max-height: 50vh;
+            padding: 20px;
+            max-height: 60vh;
             overflow-y: auto;
             transition: all 0.3s ease;
         }
 
-        /* 折叠状态 */
         #control-panel.collapsed .panel-content {
             display: none;
         }
@@ -193,160 +421,814 @@
             max-width: 180px;
         }
 
-        /* 城市筛选复选框区域 */
-        #city-filters {
-            margin-bottom: 10px;
+        /* ===== 搜索框样式 ===== */
+        .search-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .search-input {
+            width: 100%;
+            padding: 12px 15px 12px 45px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background: #f9fafb;
+            box-sizing: border-box;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 16px;
         }
 
+        /* ===== 筛选器样式 ===== */
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        .filter-section h5 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .filter-section h5 i {
+            color: #6b7280;
+        }
+        #city-filters {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
         .city-checkbox {
             display: flex;
             align-items: center;
-            margin: 6px 0;
+            margin: 0;
             cursor: pointer;
+            padding: 8px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        .city-checkbox:hover {
+            background: rgba(59, 130, 246, 0.08);
         }
         .city-checkbox input {
-            margin-right: 8px;
+            margin-right: 10px;
             cursor: pointer;
+            accent-color: #3b82f6;
         }
         .city-checkbox label {
             cursor: pointer;
             display: flex;
             align-items: center;
             font-size: 13px;
+            font-weight: 500;
+            flex: 1;
         }
         .city-color {
-            width: 12px;
-            height: 12px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
-            margin-right: 8px;
-            display: inline-block;
+            margin-right: 10px;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        #toggle-all {
-            margin-top: 10px;
-            padding: 8px 12px;
+        .age-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .age-filter {
+            padding: 6px 12px;
+            background: #f3f4f6;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #4b5563;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+        .age-filter:hover {
+            background: #e5e7eb;
+        }
+        .age-filter.active {
             background: #3b82f6;
             color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 12px;
-            width: 100%;
-            font-weight: 600;
-        }
-        #toggle-all:hover {
-            background: #2563eb;
+            border-color: #2563eb;
         }
 
-        /* === 移动端专属优化 === */
+        /* ===== 操作按钮样式 ===== */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .action-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .action-btn.primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+        .action-btn.primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(59, 130, 246, 0.4);
+        }
+        .action-btn.secondary {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        .action-btn.secondary:hover {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+
+        /* ===== 留言板样式 ===== */
+        #message-board {
+            position: absolute;
+            bottom: 25px;
+            left: 25px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 0;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            z-index: 1000;
+            max-width: 320px;
+            max-height: 400px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .message-board-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #e5e7eb;
+            background: rgba(16, 185, 129, 0.05);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .message-board-header h4 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .message-board-toggle {
+            font-size: 16px;
+            color: #6b7280;
+            transition: transform 0.3s ease;
+            background: rgba(255,255,255,0.8);
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message-board-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+
+        .message-board-content {
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            transition: all 0.3s ease;
+        }
+
+        #message-board.collapsed .message-board-content {
+            display: none;
+        }
+
+        #message-board.collapsed {
+            max-width: 180px;
+        }
+
+        .messages-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+            padding-right: 5px;
+        }
+
+        .message-item {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #10b981;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+
+        .message-author {
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .message-time {
+            color: #9ca3af;
+            font-size: 11px;
+        }
+
+        .message-text {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        .no-messages {
+            text-align: center;
+            color: #9ca3af;
+            font-style: italic;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        .message-form {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .message-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+            resize: vertical;
+            min-height: 60px;
+            font-family: inherit;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-submit {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .message-submit:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+        }
+
+        .message-clear {
+            padding: 10px 15px;
+            background: #f3f4f6;
+            color: #6b7280;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .message-clear:hover {
+            background: #e5e7eb;
+            color: #1f2937;
+        }
+
+        /* ===== 移动端专属优化 ===== */
         @media (max-width: 768px) {
-            /* 地图容器 */
             #map {
-                padding-top: 60px;
+                padding-top: 0;
             }
             
-            /* 控制面板在移动端的定位 */
             #control-panel {
                 top: 10px;
                 left: 10px;
                 right: 10px;
                 max-width: none;
                 width: auto;
+                border-radius: 14px;
             }
             
-            /* 移动端默认折叠控制面板 */
             #control-panel.collapsed {
                 max-width: none;
                 width: auto;
             }
             
             #control-panel.collapsed .panel-header h4 {
-                font-size: 13px;
+                font-size: 14px;
             }
             
-            /* 图例在移动端位置 */
             #legend {
                 bottom: 10px;
                 right: 10px;
                 left: 10px;
-                padding: 12px;
-                font-size: 12px;
+                padding: 15px;
+                font-size: 13px;
                 max-width: none;
                 cursor: pointer;
+                border-radius: 14px;
             }
             
-            /* 移动端球队图标稍小 */
+            #message-board {
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                max-width: none;
+                border-radius: 14px;
+            }
+            
+            #message-board.collapsed {
+                max-width: none;
+            }
+            
             .team-icon {
-                width: 48px;
-                height: 48px;
+                width: 50px;
+                height: 50px;
             }
             
             .team-icon img {
-                width: 38px;
-                height: 38px;
+                width: 40px;
+                height: 40px;
             }
             
-            /* 工具提示优化 */
             .leaflet-tooltip.team-tooltip {
                 font-size: 12px;
-                padding: 4px 8px;
+                padding: 6px 10px;
                 margin-top: -8px;
             }
             
-            /* 弹窗优化 */
             .popup-card {
-                min-width: 180px;
+                min-width: 250px;
                 font-size: 13px;
             }
             
-            .popup-card h3 {
-                font-size: 16px;
+            .popup-header h3 {
+                font-size: 18px;
             }
             
-            /* 连接线更细 */
             .city-connector {
                 stroke-width: 1px;
             }
+            
+            #city-filters {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-input {
+                padding: 10px 15px 10px 40px;
+                font-size: 13px;
+            }
         }
 
-        /* 小屏幕手机额外优化 */
+        /* ===== 小屏幕手机额外优化 ===== */
         @media (max-width: 480px) {
             .team-icon {
-                width: 44px;
-                height: 44px;
-                min-width: 44px;
-                min-height: 44px;
+                width: 46px;
+                height: 46px;
+                min-width: 46px;
+                min-height: 46px;
             }
             
             .team-icon img {
-                width: 34px;
-                height: 34px;
+                width: 36px;
+                height: 36px;
             }
             
             #legend {
-                padding: 10px;
-                font-size: 11px;
+                padding: 12px;
+                font-size: 12px;
             }
             
             #control-panel.collapsed {
-                max-width: 150px;
+                max-width: 160px;
             }
+            
+            #message-board.collapsed {
+                max-width: 160px;
+            }
+            
+            .stat-box {
+                padding: 8px;
+            }
+            
+            .stat-value {
+                font-size: 18px;
+            }
+        }
+
+        /* ===== 暗色模式支持 ===== */
+        @media (prefers-color-scheme: dark) {
+            html, body, #map {
+                background: #0f172a;
+            }
+            
+            .leaflet-tile {
+                filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+            }
+            
+            #control-panel, #legend, #message-board {
+                background: rgba(30, 41, 59, 0.95);
+                border-color: rgba(71, 85, 105, 0.5);
+                color: #e2e8f0;
+            }
+            
+            #control-panel h4, #legend h4, .message-board-header h4 {
+                color: #f1f5f9;
+            }
+            
+            .panel-header {
+                background: rgba(59, 130, 246, 0.15);
+                border-bottom-color: rgba(71, 85, 105, 0.5);
+            }
+            
+            .message-board-header {
+                background: rgba(16, 185, 129, 0.15);
+                border-bottom-color: rgba(71, 85, 105, 0.5);
+            }
+            
+            .search-input {
+                background: #1e293b;
+                border-color: #475569;
+                color: #e2e8f0;
+            }
+            
+            .search-input:focus {
+                border-color: #3b82f6;
+                background: #1e293b;
+            }
+            
+            .search-icon {
+                color: #94a3b8;
+            }
+            
+            .city-checkbox:hover {
+                background: rgba(59, 130, 246, 0.15);
+            }
+            
+            .age-filter {
+                background: #334155;
+                color: #cbd5e1;
+            }
+            
+            .age-filter:hover {
+                background: #475569;
+            }
+            
+            .action-btn.secondary {
+                background: #334155;
+                color: #cbd5e1;
+            }
+            
+            .action-btn.secondary:hover {
+                background: #475569;
+            }
+            
+            .stat-box {
+                background: rgba(59, 130, 246, 0.1);
+            }
+            
+            .stat-value {
+                color: #f1f5f9;
+            }
+            
+            .team-count {
+                background: #475569;
+                color: #cbd5e1;
+            }
+            
+            .legend-btn {
+                background: #334155;
+                color: #cbd5e1;
+            }
+            
+            .legend-btn:hover {
+                background: #475569;
+                color: #f1f5f9;
+            }
+            
+            .leaflet-tooltip.team-tooltip {
+                background-color: rgba(30, 41, 59, 0.95);
+                border-color: #475569;
+                color: #f1f5f9;
+            }
+            
+            .popup-card {
+                background: #1e293b;
+                color: #e2e8f0;
+            }
+            
+            .popup-header h3 {
+                color: #f1f5f9;
+            }
+            
+            .popup-body p {
+                color: #cbd5e1;
+            }
+            
+            .popup-body strong {
+                color: #e2e8f0;
+            }
+            
+            .message-item {
+                background: rgba(30, 41, 59, 0.8);
+                border-left-color: #10b981;
+            }
+            
+            .message-author {
+                color: #34d399;
+            }
+            
+            .message-text {
+                color: #e2e8f0;
+            }
+            
+            .message-input {
+                background: #1e293b;
+                border-color: #475569;
+                color: #e2e8f0;
+            }
+            
+            .message-input:focus {
+                border-color: #10b981;
+            }
+            
+            .message-clear {
+                background: #334155;
+                color: #cbd5e1;
+            }
+            
+            .message-clear:hover {
+                background: #475569;
+            }
+        }
+
+        /* ===== 数据统计面板 ===== */
+        #stats-panel {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            z-index: 999;
+            font-size: 13px;
+            max-width: 250px;
+            backdrop-filter: blur(10px);
+            display: none;
+        }
+        
+        #stats-panel.show {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stats-content h5 {
+            margin: 0 0 12px 0;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(59, 130, 246, 0.05);
+            border-radius: 10px;
+        }
+        
+        .stat-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #3b82f6;
+            display: block;
+        }
+        
+        .stat-text {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .top-cities {
+            margin-top: 15px;
+        }
+        
+        .city-rank {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .city-rank:last-child {
+            border-bottom: none;
+        }
+        
+        .city-rank-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .city-rank-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
         }
     </style>
 </head>
 <body>
+    <!-- 加载动画 -->
+    <div id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">加载中...</div>
+    </div>
+    
+    <!-- 主地图容器 -->
     <div id="map"></div>
     
     <!-- 可折叠控制面板 -->
     <div id="control-panel" class="collapsed">
         <div class="panel-header">
-            <h4>🏈 城市筛选 (17个城市)</h4>
-            <span class="panel-toggle">▼</span>
+            <h4><i class="fas fa-football-ball"></i> 球队筛选器</h4>
+            <span class="panel-toggle"><i class="fas fa-chevron-down"></i></span>
         </div>
         <div class="panel-content">
-            <div id="city-filters"></div>
-            <button id="toggle-all">显示/隐藏所有</button>
-            <div style="font-size:11px; color:#6b7280; margin-top:10px;">
-                <p>✓ 点击城市名筛选<br>✓ 点击图标查看详情</p>
+            <!-- 搜索框 -->
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="search-input" class="search-input" placeholder="搜索球队或城市...">
+            </div>
+            
+            <!-- 城市筛选 -->
+            <div class="filter-section">
+                <h5><i class="fas fa-city"></i> 按城市筛选</h5>
+                <div id="city-filters"></div>
+            </div>
+            
+            <!-- 年龄段筛选 -->
+            <div class="filter-section">
+                <h5><i class="fas fa-users"></i> 按年龄段筛选</h5>
+                <div class="age-filters">
+                    <div class="age-filter active" data-age="all">全部</div>
+                    <div class="age-filter" data-age="U9">U9</div>
+                    <div class="age-filter" data-age="U11">U11</div>
+                    <div class="age-filter" data-age="U13">U13</div>
+                    <div class="age-filter" data-age="U15">U15</div>
+                </div>
+            </div>
+            
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+                <button id="toggle-all" class="action-btn primary">
+                    <i class="fas fa-eye"></i> 显示/隐藏全部
+                </button>
+                <button id="stats-toggle" class="action-btn secondary">
+                    <i class="fas fa-chart-bar"></i> 数据统计
+                </button>
+            </div>
+            
+            <!-- 使用提示 -->
+            <div style="font-size:12px; color:#6b7280; margin-top:15px; padding-top:15px; border-top:1px solid #e5e7eb;">
+                <p><i class="fas fa-lightbulb"></i> <strong>使用提示：</strong></p>
+                <p>• 点击城市名筛选球队</p>
+                <p>• 点击图标查看详情</p>
+                <p>• 双击地图缩放</p>
+                <p>• 拖动地图浏览</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 数据统计面板 -->
+    <div id="stats-panel">
+        <div class="stats-content">
+            <h5><i class="fas fa-chart-pie"></i> 数据统计</h5>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-number" id="total-teams">0</span>
+                    <span class="stat-text">球队总数</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="total-cities">0</span>
+                    <span class="stat-text">城市总数</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="u9-teams">0</span>
+                    <span class="stat-text">U9球队</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="u13-teams">0</span>
+                    <span class="stat-text">U13球队</span>
+                </div>
+            </div>
+            <div class="top-cities">
+                <h6 style="margin:0 0 8px 0; font-size:12px; color:#6b7280;">球队数量 TOP 3</h6>
+                <div id="top-cities-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 留言板 -->
+    <div id="message-board" class="collapsed">
+        <div class="message-board-header">
+            <h4><i class="fas fa-comment-dots"></i> 留言板</h4>
+            <span class="message-board-toggle"><i class="fas fa-chevron-down"></i></span>
+        </div>
+        <div class="message-board-content">
+            <div class="messages-list" id="messages-list">
+                <!-- 留言将在这里动态显示 -->
+            </div>
+            <div class="message-form">
+                <textarea class="message-input" id="message-input" placeholder="留下你的留言..."></textarea>
+                <div class="message-actions">
+                    <button class="message-submit" id="submit-message">
+                        <i class="fas fa-paper-plane"></i> 发送留言
+                    </button>
+                    <button class="message-clear" id="clear-messages">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -354,23 +1236,29 @@
     <!-- 图例 -->
     <div id="legend"></div>
 
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    
     <script>
         // ================= 初始化地图 =================
         const map = L.map('map', {
             zoomControl: true,
-            preferCanvas: true
+            preferCanvas: true,
+            zoomSnap: 0.5,
+            wheelPxPerZoomLevel: 120
         }).setView([32.0, 110.0], 5);
 
+        // 添加地图图层
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '© OpenStreetMap, © CARTO',
             maxZoom: 18,
             subdomains: 'abcd'
         }).addTo(map);
 
-        // ================= 球队 Logo 映射 - 全部更新为真实链接 =================
+        // ================= 球队 Logo 映射 =================
         const teamLogos = {
-            // 广东球队 - 已有真实Logo
+            // 广东球队
             "广州骑士": "logos/guangzhou-knights.png",
             "广州白鳍豚": "logos/guangzhou-dolphins.png",
             "佛山小兕虎": "logos/foshan-xiaoxihu.png",
@@ -380,7 +1268,7 @@
             "深圳热浪": "logos/shenzhen-heatwave.png",
             "深圳火箭熊": "logos/shenzhen-rocketbear.png",
             
-            // 上海球队 - 已有真实Logo
+            // 上海球队
             "上海烽火狼": "logos/shanghai-firewolf.png",
             "上海鹰": "logos/shanghai-eagle.png",
             "上海蓝魔": "logos/shanghai-bluedevil.png",
@@ -392,43 +1280,46 @@
             "上海飓风角斗士": "logos/shanghai-hurricangladiator.png",
             "上海幽灵虎": "logos/shanghai-ghosttiger.png",
             
-            // 江苏球队 - 已有真实Logo
+            // 江苏球队
             "南京征服者": "logos/nanjing-conqueror.png",
             "苏州蓝骑士": "logos/suzhou-blueknight.png",
             
-            // 浙江球队 - 已有真实Logo
+            // 浙江球队
             "杭州将军": "logos/hangzhou-general.png",
             "杭州猛虎": "logos/hangzhou-tiger.png",
             "杭州四叶草": "logos/hangzhou-clover.png",
             
-            // 西安球队 - 已有真实Logo
+            // 西安球队
             "西安传奇": "logos/xian-legend.png",
             
-            // 成都球队 - 已有真实Logo
+            // 成都球队
             "成都川渝幼狮联队": "logos/chengdu-chuanyuteacher.png",
             "成都太阳鸟": "logos/chengdu-sunbird.png",
             "成都红潮": "logos/chengdu-redtide.png",
-            "成都飞虎": "logos/chengdu-flyingtigers.png", // 新增球队，使用占位符
+            "成都飞虎": "logos/chengdu-flyingtigers.png",
             
-            // 武汉球队 - 已有真实Logo
+            // 武汉球队
             "武汉change巴萨卡": "logos/wuhan-changeberserker.png",
             "武汉change眼镜蛇": "logos/wuhan-changecobra.png",
-            "武汉赤焰": "logos/wuhan-chiyan.png", // 新增球队，使用占位符
+            "武汉赤焰": "logos/wuhan-chiyan.png",
             
-            // 北京球队 - 已有真实Logo
+            // 北京球队
             "北京维肯": "logos/beijing-wiking.png",
             "北京黑曼巴": "logos/beijing-blackmamba.png",
             "北京雄狮": "logos/beijing-lion.png",
             
-            // 青岛球队 - 已有真实Logo
+            // 青岛球队
             "青岛虎鲸": "logos/qingdao-orca.png",
             
-            // 济南球队 - 已有真实Logo
+            // 济南球队
             "济南眼镜蛇": "logos/jinan-cobra.png",
             
-            // 东营球队 - 新增球队（使用占位符，未来可替换为真实Logo）
+            // 东营球队
             "东营火凤凰": "logos/dongying-huofenghuang.png"
         };
+
+        // 创建默认占位符SVG
+        const placeholderSVG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDYiIGhlaWdodD0iNDYiIHZpZXdCb3g9IjAgMCA0NiA0NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMjAiIGZpbGw9IiM2QjcyODAiLz4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMTciIGZpbGw9IiNFNUU3RUIiLz4KPHBhdGggZD0iTTIzIDEyVjM0TTE0IDIzSDMyIiBzdHJva2U9IiM2QjcyODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 
         // ================= 城市 & 球队数据 =================
         const citiesData = [
@@ -438,10 +1329,11 @@
                 name: "广州",
                 center: [23.1291, 113.2644],
                 color: "#3b82f6",
+                region: "华南",
                 teams: [
-                    { name: "广州骑士", age: "U11 / U13" },
-                    { name: "广州白鳍豚", age: "U11 / U13" },
-                    { name: "广州八爪鱼", age: "U10" }
+                    { name: "广州骑士", age: "U11 / U13", founded: "待确认", coach: "待确认" },
+                    { name: "广州白鳍豚", age: "U11 / U13", founded: "待确认", coach: "待确认" },
+                    { name: "广州八爪鱼", age: "U10", founded: "待确认", coach: "待确认" }
                 ]
             },
             {
@@ -449,10 +1341,11 @@
                 name: "深圳",
                 center: [22.5431, 114.0579],
                 color: "#10b981",
+                region: "华南",
                 teams: [
-                    { name: "深圳鲲鹏", age: "U13" },
-                    { name: "深圳热浪", age: "U13" },
-                    { name: "深圳火箭熊", age: "U10" }
+                    { name: "深圳鲲鹏", age: "U13", founded: "待确认", coach: "待确认" },
+                    { name: "深圳热浪", age: "U13", founded: "待确认", coach: "待确认" },
+                    { name: "深圳火箭熊", age: "U10", founded: "待确认", coach: "待确认" }
                 ]
             },
             {
@@ -460,8 +1353,9 @@
                 name: "佛山",
                 center: [23.0215, 113.1214],
                 color: "#8b5cf6",
+                region: "华南",
                 teams: [
-                    { name: "佛山小兕虎", age: "U9 / U11 / U13 / U15" }
+                    { name: "佛山小兕虎", age: "U9 / U11 / U13 / U15", founded: "待确认", coach: "康师傅，肥鸡" }
                 ]
             },
             {
@@ -469,8 +1363,9 @@
                 name: "珠海",
                 center: [22.2707, 113.5767],
                 color: "#f59e0b",
+                region: "华南",
                 teams: [
-                    { name: "珠海海东青", age: "待确认" }
+                    { name: "珠海海东青", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 上海地区
@@ -479,17 +1374,18 @@
                 name: "上海",
                 center: [31.2304, 121.4737],
                 color: "#ef4444",
+                region: "华东",
                 teams: [
-                    { name: "上海烽火狼", age: "U9 / U11 / U13 / U15" },
-                    { name: "上海鹰", age: "U9 / U11 / U13 / U15" },
-                    { name: "上海蓝魔", age: "U11 / U13" },
-                    { name: "上海Chang飓风", age: "U11" },
-                    { name: "上海鳄鱼", age: "U9 / U11 / U13" },
-                    { name: "上海银河", age: "U9 / U11 / U13 / U15" },
-                    { name: "上海坚毅坦克", age: "U9 / U11" },
-                    { name: "上海AFA鲨鱼", age: "U9 / U11 / U13" },
-                    { name: "上海飓风角斗士", age: "U11" },
-                    { name: "上海幽灵虎", age: "U9" }
+                    { name: "上海烽火狼", age: "U9 / U11 / U13 / U15", founded: "待确认", coach: "待确认" },
+                    { name: "上海鹰", age: "U9 / U11 / U13 / U15", founded: "待确认", coach: "待确认" },
+                    { name: "上海蓝魔", age: "U11 / U13", founded: "待确认", coach: "待确认" },
+                    { name: "上海Chang飓风", age: "U11", founded: "待确认", coach: "待确认" },
+                    { name: "上海鳄鱼", age: "U9 / U11 / U13", founded: "待确认", coach: "待确认" },
+                    { name: "上海银河", age: "U9 / U11 / U13 / U15", founded: "待确认", coach: "待确认" },
+                    { name: "上海坚毅坦克", age: "U9 / U11", founded: "待确认", coach: "待确认" },
+                    { name: "上海AFA鲨鱼", age: "U9 / U11 / U13", founded: "待确认", coach: "待确认" },
+                    { name: "上海飓风角斗士", age: "U11", founded: "待确认", coach: "待确认" },
+                    { name: "上海幽灵虎", age: "U9", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 江苏地区
@@ -498,8 +1394,9 @@
                 name: "南京",
                 center: [32.0603, 118.7969],
                 color: "#06b6d4",
+                region: "华东",
                 teams: [
-                    { name: "南京征服者", age: "U11" }
+                    { name: "南京征服者", age: "U11", founded: "待确认", coach: "待确认" }
                 ]
             },
             {
@@ -507,8 +1404,9 @@
                 name: "苏州",
                 center: [31.2989, 120.5853],
                 color: "#ec4899",
+                region: "华东",
                 teams: [
-                    { name: "苏州蓝骑士", age: "U9 / U11" }
+                    { name: "苏州蓝骑士", age: "U9 / U11", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 浙江地区
@@ -517,10 +1415,11 @@
                 name: "杭州",
                 center: [30.2741, 120.1551],
                 color: "#84cc16",
+                region: "华东",
                 teams: [
-                    { name: "杭州将军", age: "U11" },
-                    { name: "杭州猛虎", age: "U13" },
-                    { name: "杭州四叶草", age: "待确认" }
+                    { name: "杭州将军", age: "U11", founded: "待确认", coach: "待确认" },
+                    { name: "杭州猛虎", age: "U13", founded: "待确认", coach: "待确认" },
+                    { name: "杭州四叶草", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 西安
@@ -529,8 +1428,9 @@
                 name: "西安",
                 center: [34.3416, 108.9398],
                 color: "#8b5cf6",
+                region: "西北",
                 teams: [
-                    { name: "西安传奇", age: "U9 / U11 / U13 / U15" }
+                    { name: "西安传奇", age: "U9 / U11 / U13 / U15", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 成都
@@ -539,11 +1439,12 @@
                 name: "成都",
                 center: [30.5728, 104.0668],
                 color: "#f59e0b",
+                region: "西南",
                 teams: [
-                    { name: "成都川渝幼狮联队", age: "待确认" },
-                    { name: "成都太阳鸟", age: "待确认" },
-                    { name: "成都红潮", age: "待确认" },
-                    { name: "成都飞虎", age: "待确认" } // 新增球队
+                    { name: "成都川渝幼狮联队", age: "待确认", founded: "待确认", coach: "待确认" },
+                    { name: "成都太阳鸟", age: "待确认", founded: "待确认", coach: "待确认" },
+                    { name: "成都红潮", age: "待确认", founded: "待确认", coach: "待确认" },
+                    { name: "成都飞虎", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 武汉
@@ -552,10 +1453,11 @@
                 name: "武汉",
                 center: [30.5928, 114.3055],
                 color: "#10b981",
+                region: "华中",
                 teams: [
-                    { name: "武汉change巴萨卡", age: "U9 / U11 / U13 / U15" },
-                    { name: "武汉change眼镜蛇", age: "U11" },
-                    { name: "武汉赤焰", age: "待确认" } // 新增球队
+                    { name: "武汉change巴萨卡", age: "U9 / U11 / U13 / U15", founded: "待确认", coach: "待确认" },
+                    { name: "武汉change眼镜蛇", age: "U11", founded: "待确认", coach: "待确认" },
+                    { name: "武汉赤焰", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 北京
@@ -564,10 +1466,11 @@
                 name: "北京",
                 center: [39.9042, 116.4074],
                 color: "#3b82f6",
+                region: "华北",
                 teams: [
-                    { name: "北京维肯", age: "U13" },
-                    { name: "北京黑曼巴", age: "U9 / U11" },
-                    { name: "北京雄狮", age: "待确认" }
+                    { name: "北京维肯", age: "U13", founded: "待确认", coach: "待确认" },
+                    { name: "北京黑曼巴", age: "U9 / U11", founded: "待确认", coach: "待确认" },
+                    { name: "北京雄狮", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 青岛
@@ -576,8 +1479,9 @@
                 name: "青岛",
                 center: [36.0671, 120.3826],
                 color: "#06b6d4",
+                region: "华东",
                 teams: [
-                    { name: "青岛虎鲸", age: "U11 / U13" }
+                    { name: "青岛虎鲸", age: "U11 / U13", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 济南
@@ -586,37 +1490,180 @@
                 name: "济南",
                 center: [36.6512, 117.1200],
                 color: "#ec4899",
+                region: "华东",
                 teams: [
-                    { name: "济南眼镜蛇", age: "待确认" }
+                    { name: "济南眼镜蛇", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
-            // 新增：东营
+            // 东营
             {
                 id: "dongying",
                 name: "东营",
                 center: [37.433, 118.674],
                 color: "#f97316",
+                region: "华东",
                 teams: [
-                    { name: "东营火凤凰", age: "待确认" }
+                    { name: "东营火凤凰", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             }
         ];
+
+        // ================= 全局变量 =================
+        const allMarkers = {};
+        const allConnectors = {};
+        const allPopups = [];
+        let activeFilters = {
+            cities: citiesData.map(city => city.id),
+            age: 'all',
+            search: ''
+        };
+
+        // ================= 留言板功能 =================
+        class MessageBoard {
+            constructor() {
+                this.messages = JSON.parse(localStorage.getItem('football_map_messages')) || [];
+                this.init();
+            }
+            
+            init() {
+                this.renderMessages();
+                this.setupEventListeners();
+            }
+            
+            renderMessages() {
+                const messagesList = document.getElementById('messages-list');
+                
+                if (this.messages.length === 0) {
+                    messagesList.innerHTML = '<div class="no-messages">暂无留言，快来第一个发言吧！</div>';
+                    return;
+                }
+                
+                // 按时间倒序排列
+                const sortedMessages = [...this.messages].sort((a, b) => b.timestamp - a.timestamp);
+                
+                messagesList.innerHTML = sortedMessages.map(message => `
+                    <div class="message-item">
+                        <div class="message-header">
+                            <span class="message-author">${message.author}</span>
+                            <span class="message-time">${this.formatTime(message.timestamp)}</span>
+                        </div>
+                        <div class="message-text">${this.escapeHtml(message.text)}</div>
+                    </div>
+                `).join('');
+                
+                // 滚动到最新留言
+                messagesList.scrollTop = 0;
+            }
+            
+            formatTime(timestamp) {
+                const date = new Date(timestamp);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return '刚刚';
+                if (diffMins < 60) return `${diffMins}分钟前`;
+                if (diffHours < 24) return `${diffHours}小时前`;
+                if (diffDays < 7) return `${diffDays}天前`;
+                
+                return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+            }
+            
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+            
+            addMessage(text, author = '匿名用户') {
+                if (!text.trim()) return;
+                
+                const message = {
+                    id: Date.now(),
+                    text: text.trim(),
+                    author: author,
+                    timestamp: Date.now()
+                };
+                
+                this.messages.push(message);
+                
+                // 只保留最近的50条留言
+                if (this.messages.length > 50) {
+                    this.messages = this.messages.slice(-50);
+                }
+                
+                this.saveMessages();
+                this.renderMessages();
+                
+                // 清空输入框
+                document.getElementById('message-input').value = '';
+            }
+            
+            clearMessages() {
+                if (confirm('确定要清空所有留言吗？此操作不可撤销。')) {
+                    this.messages = [];
+                    this.saveMessages();
+                    this.renderMessages();
+                }
+            }
+            
+            saveMessages() {
+                localStorage.setItem('football_map_messages', JSON.stringify(this.messages));
+            }
+            
+            setupEventListeners() {
+                const submitBtn = document.getElementById('submit-message');
+                const clearBtn = document.getElementById('clear-messages');
+                const messageInput = document.getElementById('message-input');
+                const messageBoard = document.getElementById('message-board');
+                const messageBoardHeader = document.querySelector('.message-board-header');
+                const messageBoardToggle = document.querySelector('.message-board-toggle');
+                
+                // 提交留言
+                submitBtn.addEventListener('click', () => {
+                    this.addMessage(messageInput.value);
+                });
+                
+                // 按Enter发送留言，Ctrl+Enter换行
+                messageInput.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.ctrlKey) {
+                        e.preventDefault();
+                        this.addMessage(messageInput.value);
+                    }
+                });
+                
+                // 清空留言
+                clearBtn.addEventListener('click', () => {
+                    this.clearMessages();
+                });
+                
+                // 留言板折叠/展开
+                messageBoardHeader.addEventListener('click', function() {
+                    messageBoard.classList.toggle('collapsed');
+                    messageBoardToggle.classList.toggle('collapsed');
+                });
+                
+                // 移动端默认折叠留言板
+                if (window.innerWidth <= 768) {
+                    messageBoard.classList.add('collapsed');
+                    messageBoardToggle.classList.add('collapsed');
+                }
+            }
+        }
 
         // ================= 智能防重叠布局算法 =================
         function calculateTeamPositions(center, teamCount) {
             if (teamCount === 1) return [center];
             
             const positions = [];
-            // 根据球队数量调整基础半径
             const baseRadius = 0.08 + (teamCount * 0.006);
             
-            // 根据不同数量采用不同布局
             if (teamCount === 2) {
-                // 两队：水平排列
                 positions.push([center[0], center[1] - baseRadius]);
                 positions.push([center[0], center[1] + baseRadius]);
             } else if (teamCount === 3) {
-                // 三队：三角形排列
                 for (let i = 0; i < 3; i++) {
                     const angle = (i * 120 - 90) * Math.PI / 180;
                     positions.push([
@@ -625,7 +1672,6 @@
                     ]);
                 }
             } else if (teamCount <= 6) {
-                // 4-6队：正多边形排列
                 for (let i = 0; i < teamCount; i++) {
                     const angle = (i * 360 / teamCount - 90) * Math.PI / 180;
                     positions.push([
@@ -634,7 +1680,6 @@
                     ]);
                 }
             } else {
-                // 7队以上：螺旋排列（适合上海这种球队多的城市）
                 const goldenAngle = Math.PI * (3 - Math.sqrt(5));
                 for (let i = 0; i < teamCount; i++) {
                     const theta = i * goldenAngle;
@@ -648,14 +1693,6 @@
             
             return positions;
         }
-
-        // ================= 存储地图元素 =================
-        const allMarkers = {};
-        const allConnectors = {};
-        const allPopups = [];
-
-        // 创建默认占位符SVG（当真实Logo加载失败时使用）
-        const placeholderSVG = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDYiIGhlaWdodD0iNDYiIHZpZXdCb3g9IjAgMCA0NiA0NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMjAiIGZpbGw9IiM2QjcyODAiLz4KPGNpcmNsZSBjeD0iMjMiIGN5PSIyMyIgcj0iMTciIGZpbGw9IiNFNUU3RUIiLz4KPHBhdGggZD0iTTIzIDEyVjM0TTE0IDIzSDMyIiBzdHJva2U9IiM2QjcyODAiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+Cjwvc3ZnPgo=';
 
         // ================= 渲染城市球队 =================
         function renderCity(city, visible = true) {
@@ -672,14 +1709,34 @@
 
             if (!visible) return;
 
-            const teamCount = city.teams.length;
-            const teamPositions = calculateTeamPositions(city.center, teamCount);
+            // 根据筛选条件过滤球队
+            const filteredTeams = city.teams.filter(team => {
+                // 搜索筛选
+                if (activeFilters.search && 
+                    !team.name.toLowerCase().includes(activeFilters.search.toLowerCase()) &&
+                    !city.name.toLowerCase().includes(activeFilters.search.toLowerCase())) {
+                    return false;
+                }
+                
+                // 年龄段筛选
+                if (activeFilters.age !== 'all' && activeFilters.age !== '') {
+                    if (!team.age.includes(activeFilters.age)) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+
+            if (filteredTeams.length === 0) return;
+
+            const teamPositions = calculateTeamPositions(city.center, filteredTeams.length);
             
             allMarkers[city.id] = [];
             allConnectors[city.id] = [];
 
-            // 绘制连接线（只有多于一个球队时）
-            if (teamCount > 1) {
+            // 绘制连接线
+            if (filteredTeams.length > 1) {
                 teamPositions.forEach(position => {
                     const connector = L.polyline([city.center, position], {
                         className: 'city-connector',
@@ -693,7 +1750,7 @@
             }
 
             // 创建每个球队的标记
-            city.teams.forEach((team, index) => {
+            filteredTeams.forEach((team, index) => {
                 const teamPosition = teamPositions[index];
 
                 const icon = L.divIcon({
@@ -720,18 +1777,37 @@
                     })
                     .bindPopup(`
                         <div class="popup-card">
-                            <h3>${team.name}</h3>
-                            <p><strong>城市：</strong><span class="city">${city.name}</span></p>
-                            <p><strong>项目：</strong>美式足球（装备）</p>
-                            <p><strong>梯队：</strong><span class="age-group">${team.age}</span></p>
-                            <p style="font-size:12px; color:#9ca3af; margin-top:10px; border-top:1px solid #e5e7eb; padding-top:8px;">
+                            <div class="popup-header">
+                                <img src="${teamLogos[team.name] || 'logos/placeholder.png'}" 
+                                     alt="${team.name} Logo" 
+                                     class="popup-logo"
+                                     onerror="this.src='${placeholderSVG}'">
+                                <h3>${team.name}</h3>
+                            </div>
+                            <div class="popup-body">
+                                <p><strong>城市：</strong><span class="city">${city.name}</span></p>
+                                <p><strong>地区：</strong>${city.region}</p>
+                                <p><strong>梯队：</strong><span class="age-group">${team.age}</span></p>
+                                <p><strong>项目：</strong>美式足球（装备）</p>
+                                <p><strong>成立：</strong>${team.founded}</p>
+                                <p><strong>教练：</strong>${team.coach}</p>
+                            </div>
+                            <div class="popup-actions">
+                                <button class="popup-btn" onclick="zoomToCity('${city.id}')">
+                                    <i class="fas fa-map-marker-alt"></i> 定位城市
+                                </button>
+                                <button class="popup-btn secondary" onclick="shareTeam('${team.name}', '${city.name}')">
+                                    <i class="fas fa-share-alt"></i> 分享
+                                </button>
+                            </div>
+                            <div class="popup-footer">
                                 <em>点击地图其他区域关闭弹窗</em>
-                            </p>
+                            </div>
                         </div>
                     `, {
                         closeButton: true,
-                        maxWidth: 300,
-                        minWidth: 220,
+                        maxWidth: 350,
+                        minWidth: 280,
                         autoPan: true
                     });
 
@@ -741,9 +1817,19 @@
                 // 悬停效果
                 marker.on('mouseover', function () {
                     this._icon.classList.add('city-highlight');
+                    if (allConnectors[city.id]) {
+                        allConnectors[city.id].forEach(connector => {
+                            connector.setStyle({ className: 'city-connector highlight' });
+                        });
+                    }
                 });
                 marker.on('mouseout', function () {
                     this._icon.classList.remove('city-highlight');
+                    if (allConnectors[city.id]) {
+                        allConnectors[city.id].forEach(connector => {
+                            connector.setStyle({ className: 'city-connector' });
+                        });
+                    }
                 });
             });
         }
@@ -760,28 +1846,81 @@
                     <input type="checkbox" id="${checkboxId}" checked>
                     <label for="${checkboxId}">
                         <span class="city-color" style="background-color: ${city.color}"></span>
-                        ${city.name} (${city.teams.length}队)
+                        ${city.name} <span style="margin-left:auto; font-size:11px; color:#6b7280;">${city.teams.length}队</span>
                     </label>
                 `;
                 
-                checkbox.querySelector('input').addEventListener('change', function() {
-                    renderCity(city, this.checked);
-                    updateLegend();
+                const input = checkbox.querySelector('input');
+                input.addEventListener('change', function() {
+                    if (this.checked) {
+                        if (!activeFilters.cities.includes(city.id)) {
+                            activeFilters.cities.push(city.id);
+                        }
+                    } else {
+                        activeFilters.cities = activeFilters.cities.filter(id => id !== city.id);
+                    }
+                    applyFilters();
                 });
                 
                 filtersContainer.appendChild(checkbox);
-                renderCity(city, true);
             });
         }
 
-        // ================= 创建并更新图例 =================
-        function updateLegend() {
-            const visibleCities = citiesData.filter(city => {
-                const checkbox = document.getElementById(`city-${city.id}`);
-                return checkbox ? checkbox.checked : true;
+        // ================= 应用所有筛选条件 =================
+        function applyFilters() {
+            // 清除所有现有标记
+            Object.values(allMarkers).forEach(markers => {
+                markers.forEach(marker => map.removeLayer(marker));
+            });
+            Object.values(allConnectors).forEach(connectors => {
+                connectors.forEach(connector => map.removeLayer(connector));
             });
             
-            const totalTeams = visibleCities.reduce((sum, city) => sum + city.teams.length, 0);
+            // 重新渲染所有城市
+            citiesData.forEach(city => {
+                const isCityVisible = activeFilters.cities.includes(city.id);
+                renderCity(city, isCityVisible);
+            });
+            
+            updateLegend();
+            updateStats();
+        }
+
+        // ================= 更新图例 =================
+        function updateLegend() {
+            const visibleCities = citiesData.filter(city => {
+                return activeFilters.cities.includes(city.id);
+            });
+            
+            const filteredCities = visibleCities.filter(city => {
+                if (activeFilters.search) {
+                    return city.teams.some(team => 
+                        team.name.toLowerCase().includes(activeFilters.search.toLowerCase()) ||
+                        city.name.toLowerCase().includes(activeFilters.search.toLowerCase())
+                    );
+                }
+                return true;
+            });
+            
+            const totalTeams = filteredCities.reduce((sum, city) => {
+                const filteredTeams = city.teams.filter(team => {
+                    if (activeFilters.search && 
+                        !team.name.toLowerCase().includes(activeFilters.search.toLowerCase()) &&
+                        !city.name.toLowerCase().includes(activeFilters.search.toLowerCase())) {
+                        return false;
+                    }
+                    
+                    if (activeFilters.age !== 'all' && activeFilters.age !== '') {
+                        if (!team.age.includes(activeFilters.age)) {
+                            return false;
+                        }
+                    }
+                    
+                    return true;
+                });
+                return sum + filteredTeams.length;
+            }, 0);
+            
             const isMobile = window.innerWidth <= 768;
 
             let legendContent;
@@ -789,42 +1928,57 @@
             if (isMobile) {
                 // 移动端简化版图例
                 legendContent = `
-                    <h4 style="margin:0 0 8px 0; font-size:14px;">🏈 ${visibleCities.length}城/${totalTeams}队</h4>
+                    <h4><i class="fas fa-football-ball"></i> ${filteredCities.length}城/${totalTeams}队</h4>
                     <div style="font-size:12px; color:#6b7280; line-height:1.4;">
-                        <p>点击上方<b style="color:#3b82f6; margin:0 3px;">▼</b>筛选城市</p>
-                        <p>点击球队图标查看详情</p>
-                        <p style="margin-top:6px; font-size:11px; color:#9ca3af;">点击此处展开完整图例</p>
+                        <p>点击上方<b style="color:#3b82f6; margin:0 3px;">▼</b>筛选球队</p>
+                        <p>点击图标查看详情</p>
+                        <p style="margin-top:6px; font-size:11px; color:#9ca3af;">点击此处展开图例</p>
                     </div>
                 `;
             } else {
                 // 桌面端完整图例
                 legendContent = `
-                    <h4>🏈 青少年装备橄榄球分布图</h4>
-                    <p><strong>显示城市：</strong>${visibleCities.length} / ${citiesData.length} 个</p>
-                    <p><strong>显示球队：</strong>${totalTeams} 支</p>
+                    <h4><i class="fas fa-map"></i> 球队分布图</h4>
+                    <div class="legend-stats">
+                        <div class="stat-box">
+                            <span class="stat-value">${filteredCities.length}</span>
+                            <span class="stat-label">显示城市</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-value">${totalTeams}</span>
+                            <span class="stat-label">显示球队</span>
+                        </div>
+                    </div>
                     <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e5e7eb;">
-                        <p style="margin-bottom:8px; font-weight:600;">颜色对应：</p>
+                        <p style="margin-bottom:8px; font-weight:600; font-size:13px;">城市列表：</p>
                 `;
                 
                 // 只显示当前可见的城市
-                visibleCities.slice(0, 8).forEach(city => {
+                filteredCities.slice(0, 8).forEach(city => {
+                    const isActive = activeFilters.cities.includes(city.id);
                     legendContent += `
-                        <div class="legend-item">
+                        <div class="legend-item ${isActive ? 'active' : ''}" onclick="toggleCity('${city.id}')">
                             <span class="legend-color" style="background-color: ${city.color}"></span>
-                            <span>${city.name} (${city.teams.length}队)</span>
+                            <span class="city-name">${city.name}</span>
+                            <span class="team-count">${city.teams.length}</span>
                         </div>
                     `;
                 });
 
-                if (visibleCities.length > 8) {
-                    legendContent += `<div class="legend-item"><span>... 及其他 ${visibleCities.length - 8} 个城市</span></div>`;
+                if (filteredCities.length > 8) {
+                    legendContent += `<div class="legend-item"><span>... 及其他 ${filteredCities.length - 8} 个城市</span></div>`;
                 }
 
                 legendContent += `
                     </div>
-                    <p style="font-size:12px; color:#6b7280; margin-top:12px; line-height:1.4;">
-                        <strong>交互提示：</strong>鼠标悬停显示队名，点击图标查看详情，点击地图空白处关闭弹窗。
-                    </p>
+                    <div class="legend-actions">
+                        <button class="legend-btn" onclick="zoomToVisible()">
+                            <i class="fas fa-search-location"></i> 定位
+                        </button>
+                        <button class="legend-btn primary" onclick="resetFilters()">
+                            <i class="fas fa-redo"></i> 重置
+                        </button>
+                    </div>
                 `;
             }
 
@@ -840,34 +1994,35 @@
                         this.innerHTML = originalContent;
                         this.setAttribute('data-expanded', 'false');
                     } else {
-                        // 创建展开的图例内容
                         let expandedContent = `
-                            <h4 style="margin:0 0 10px 0; font-size:14px;">🏈 完整图例</h4>
-                            <p><strong>显示城市：</strong>${visibleCities.length} / ${citiesData.length} 个</p>
+                            <h4 style="margin:0 0 10px 0; font-size:14px;"><i class="fas fa-map"></i> 完整图例</h4>
+                            <p><strong>显示城市：</strong>${filteredCities.length} / ${citiesData.length} 个</p>
                             <p><strong>显示球队：</strong>${totalTeams} 支</p>
                             <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e5e7eb;">
-                                <p style="margin-bottom:6px; font-weight:600;">城市列表：</p>
+                                <p style="margin-bottom:6px; font-weight:600; font-size:13px;">城市列表：</p>
                         `;
                         
-                        visibleCities.forEach(city => {
+                        filteredCities.forEach(city => {
+                            const isActive = activeFilters.cities.includes(city.id);
                             expandedContent += `
-                                <div class="legend-item" style="margin:4px 0;">
+                                <div class="legend-item" style="margin:4px 0;" onclick="toggleCity('${city.id}')">
                                     <span class="legend-color" style="background-color: ${city.color}"></span>
-                                    <span style="font-size:11px;">${city.name} (${city.teams.length}队)</span>
+                                    <span style="font-size:12px;">${city.name} (${city.teams.length}队)</span>
                                 </div>
                             `;
                         });
                         
                         expandedContent += `
                             </div>
-                            <p style="font-size:11px; color:#6b7280; margin-top:10px; line-height:1.4;">
-                                <strong>操作指南：</strong><br>
-                                • 点击顶部面板筛选城市<br>
-                                • 点击球队图标查看详情<br>
-                                • 点击地图关闭弹窗<br>
-                                • 双击地图缩放
-                            </p>
-                            <p style="font-size:10px; color:#9ca3af; margin-top:8px; text-align:center;">
+                            <div style="display:flex; gap:10px; margin-top:15px;">
+                                <button class="legend-btn" onclick="zoomToVisible()" style="padding:8px; font-size:11px;">
+                                    <i class="fas fa-search-location"></i> 定位可见
+                                </button>
+                                <button class="legend-btn primary" onclick="resetFilters()" style="padding:8px; font-size:11px;">
+                                    <i class="fas fa-redo"></i> 重置筛选
+                                </button>
+                            </div>
+                            <p style="font-size:10px; color:#9ca3af; margin-top:10px; text-align:center;">
                                 点击此处收起图例
                             </p>
                         `;
@@ -878,6 +2033,127 @@
                 });
                 
                 legend.setAttribute('data-expanded', 'false');
+            }
+        }
+
+        // ================= 数据统计 =================
+        function updateStats() {
+            const visibleCities = citiesData.filter(city => {
+                return activeFilters.cities.includes(city.id);
+            });
+            
+            let totalTeams = 0;
+            let u9Teams = 0;
+            let u11Teams = 0;
+            let u13Teams = 0;
+            let u15Teams = 0;
+            
+            visibleCities.forEach(city => {
+                city.teams.forEach(team => {
+                    if (team.age.includes('U9')) u9Teams++;
+                    if (team.age.includes('U11')) u11Teams++;
+                    if (team.age.includes('U13')) u13Teams++;
+                    if (team.age.includes('U15')) u15Teams++;
+                });
+                totalTeams += city.teams.length;
+            });
+            
+            // 更新统计数字
+            document.getElementById('total-teams').textContent = totalTeams;
+            document.getElementById('total-cities').textContent = visibleCities.length;
+            document.getElementById('u9-teams').textContent = u9Teams;
+            document.getElementById('u13-teams').textContent = u13Teams;
+            
+            // 更新城市排名
+            const sortedCities = [...visibleCities].sort((a, b) => b.teams.length - a.teams.length);
+            const topCitiesList = document.getElementById('top-cities-list');
+            topCitiesList.innerHTML = '';
+            
+            sortedCities.slice(0, 3).forEach((city, index) => {
+                const rankItem = document.createElement('div');
+                rankItem.className = 'city-rank';
+                rankItem.innerHTML = `
+                    <div class="city-rank-name">
+                        <span class="city-rank-color" style="background-color: ${city.color}"></span>
+                        <span>${city.name}</span>
+                    </div>
+                    <span style="font-weight:700; color:#3b82f6;">${city.teams.length}队</span>
+                `;
+                topCitiesList.appendChild(rankItem);
+            });
+        }
+
+        // ================= 辅助功能函数 =================
+        function toggleCity(cityId) {
+            const checkbox = document.getElementById(`city-${cityId}`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        }
+        
+        function zoomToCity(cityId) {
+            const city = citiesData.find(c => c.id === cityId);
+            if (city) {
+                map.setView(city.center, 10, {
+                    animate: true,
+                    duration: 1
+                });
+            }
+        }
+        
+        function zoomToVisible() {
+            const visibleCities = citiesData.filter(city => {
+                return activeFilters.cities.includes(city.id);
+            });
+            
+            if (visibleCities.length === 0) return;
+            
+            const bounds = L.latLngBounds(visibleCities.map(city => city.center));
+            map.fitBounds(bounds, {
+                padding: [50, 50],
+                maxZoom: 7
+            });
+        }
+        
+        function resetFilters() {
+            // 重置城市筛选
+            const checkboxes = document.querySelectorAll('#city-filters input[type="checkbox"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            activeFilters.cities = citiesData.map(city => city.id);
+            
+            // 重置年龄段筛选
+            document.querySelectorAll('.age-filter').forEach(filter => {
+                filter.classList.remove('active');
+            });
+            document.querySelector('.age-filter[data-age="all"]').classList.add('active');
+            activeFilters.age = 'all';
+            
+            // 重置搜索
+            document.getElementById('search-input').value = '';
+            activeFilters.search = '';
+            
+            // 应用重置后的筛选
+            applyFilters();
+        }
+        
+        function shareTeam(teamName, cityName) {
+            const url = window.location.href;
+            const text = `查看${cityName}的${teamName}球队信息 - 中国青少年美式足球球队分布图`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: '中国青少年美式足球球队分布图',
+                    text: text,
+                    url: url
+                });
+            } else {
+                // 复制到剪贴板
+                navigator.clipboard.writeText(`${text} ${url}`).then(() => {
+                    alert('分享链接已复制到剪贴板！');
+                });
             }
         }
 
@@ -918,14 +2194,31 @@
 
         // ================= 初始化 =================
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始化筛选器
             initCityFilters();
-            updateLegend();
-            initMobileOptimizations();
-
-            // 更新控制面板标题
-            document.querySelector('#control-panel h4').textContent = `🏈 城市筛选 (${citiesData.length}个城市)`;
-
-            // 添加显示/隐藏所有按钮功能
+            
+            // 初始化年龄段筛选器
+            document.querySelectorAll('.age-filter').forEach(filter => {
+                filter.addEventListener('click', function() {
+                    document.querySelectorAll('.age-filter').forEach(f => f.classList.remove('active'));
+                    this.classList.add('active');
+                    activeFilters.age = this.getAttribute('data-age');
+                    applyFilters();
+                });
+            });
+            
+            // 初始化搜索功能
+            const searchInput = document.getElementById('search-input');
+            let searchTimeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    activeFilters.search = this.value;
+                    applyFilters();
+                }, 300);
+            });
+            
+            // 初始化显示/隐藏所有按钮
             document.getElementById('toggle-all').addEventListener('click', function() {
                 const checkboxes = document.querySelectorAll('#city-filters input[type="checkbox"]');
                 const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
@@ -933,13 +2226,31 @@
                 checkboxes.forEach(checkbox => {
                     checkbox.checked = !allChecked;
                     const cityId = checkbox.id.replace('city-', '');
-                    const city = citiesData.find(c => c.id === cityId);
-                    if (city) renderCity(city, !allChecked);
+                    if (allChecked) {
+                        activeFilters.cities = activeFilters.cities.filter(id => id !== cityId);
+                    } else {
+                        if (!activeFilters.cities.includes(cityId)) {
+                            activeFilters.cities.push(cityId);
+                        }
+                    }
                 });
                 
-                updateLegend();
+                applyFilters();
             });
-
+            
+            // 初始化统计面板切换
+            document.getElementById('stats-toggle').addEventListener('click', function() {
+                const statsPanel = document.getElementById('stats-panel');
+                statsPanel.classList.toggle('show');
+            });
+            
+            // 初始化留言板
+            const messageBoard = new MessageBoard();
+            
+            // 初始渲染
+            applyFilters();
+            initMobileOptimizations();
+            
             // 地图点击关闭所有弹窗
             map.on('click', function (e) {
                 allPopups.forEach(popup => {
@@ -948,15 +2259,23 @@
                     }
                 });
             });
-
+            
+            // 隐藏加载动画
+            setTimeout(() => {
+                document.getElementById('loading').style.opacity = '0';
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 500);
+            }, 800);
+            
             // 控制台信息
             console.log(`🏈 青少年装备橄榄球地图已加载！`);
             console.log(`   城市数量: ${citiesData.length}`);
             const totalTeams = citiesData.reduce((sum, city) => sum + city.teams.length, 0);
             console.log(`   球队总数: ${totalTeams} 支`);
-            console.log(`   真实Logo数量: ${Object.keys(teamLogos).length} 个`);
-            console.log(`   新增球队: 武汉赤焰、成都飞虎 ✅`);
-            console.log(`   移动端优化: 已启用`);
+            console.log(`   佛山小兕虎教练: 康师傅，肥鸡 ✅`);
+            console.log(`   其他球队信息: 已更新为待确认 ✅`);
+            console.log(`   功能: 搜索/筛选/统计/留言板/移动端优化 ✅`);
         });
 
         // ================= 窗口大小调整处理 =================
@@ -965,14 +2284,20 @@
             
             const controlPanel = document.getElementById('control-panel');
             const panelToggle = document.querySelector('.panel-toggle');
+            const messageBoard = document.getElementById('message-board');
+            const messageBoardToggle = document.querySelector('.message-board-toggle');
             
             // 移动端/桌面端切换时调整控制面板状态
             if (window.innerWidth <= 768) {
                 controlPanel.classList.add('collapsed');
                 if (panelToggle) panelToggle.classList.add('collapsed');
+                if (messageBoard) messageBoard.classList.add('collapsed');
+                if (messageBoardToggle) messageBoardToggle.classList.add('collapsed');
             } else {
                 controlPanel.classList.remove('collapsed');
                 if (panelToggle) panelToggle.classList.remove('collapsed');
+                if (messageBoard) messageBoard.classList.remove('collapsed');
+                if (messageBoardToggle) messageBoardToggle.classList.remove('collapsed');
             }
         });
     </script>
