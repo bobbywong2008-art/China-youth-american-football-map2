@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="中国青少年美式足球（装备橄榄球）球队分布地图，涵盖全国17个城市的青少年美式足球球队信息">
+    <meta name="description" content="中国青少年美式足球（装备橄榄球）球队分布地图，涵盖全国18个城市的青少年美式足球球队信息">
     <meta name="keywords" content="美式足球,橄榄球,青少年体育,中国橄榄球,球队分布,体育地图">
     <meta name="author" content="中国青少年美式足球地图">
-    <title>中国青少年美式足球球队分布图｜全国版 (17城市)</title>
+    <title>中国青少年美式足球球队分布图｜全国版 (18城市)</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -1288,6 +1288,7 @@
             "杭州将军": "logos/hangzhou-general.png",
             "杭州猛虎": "logos/hangzhou-tiger.png",
             "杭州四叶草": "logos/hangzhou-clover.png",
+            "温州赤鹿青训": "logos/wenzhou-reddeer.png", // 新增球队Logo
             
             // 西安球队
             "西安传奇": "logos/xian-legend.png",
@@ -1420,6 +1421,17 @@
                     { name: "杭州将军", age: "U11", founded: "待确认", coach: "待确认" },
                     { name: "杭州猛虎", age: "U13", founded: "待确认", coach: "待确认" },
                     { name: "杭州四叶草", age: "待确认", founded: "待确认", coach: "待确认" }
+                ]
+            },
+            // 温州地区 - 新增
+            {
+                id: "wenzhou",
+                name: "温州",
+                center: [27.9943, 120.6994],
+                color: "#a855f7",
+                region: "华东",
+                teams: [
+                    { name: "温州赤鹿青训", age: "待确认", founded: "待确认", coach: "待确认" }
                 ]
             },
             // 西安
@@ -2268,11 +2280,15 @@
                 }, 500);
             }, 800);
             
+            // 更新控制面板标题
+            document.querySelector('#control-panel h4').innerHTML = `<i class="fas fa-football-ball"></i> 球队筛选器 (${citiesData.length}个城市)`;
+            
             // 控制台信息
             console.log(`🏈 青少年装备橄榄球地图已加载！`);
             console.log(`   城市数量: ${citiesData.length}`);
             const totalTeams = citiesData.reduce((sum, city) => sum + city.teams.length, 0);
             console.log(`   球队总数: ${totalTeams} 支`);
+            console.log(`   新增球队: 温州赤鹿青训 ✅`);
             console.log(`   佛山小兕虎教练: 康师傅，肥鸡 ✅`);
             console.log(`   其他球队信息: 已更新为待确认 ✅`);
             console.log(`   功能: 搜索/筛选/统计/留言板/移动端优化 ✅`);
